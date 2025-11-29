@@ -1,12 +1,13 @@
-"use-client";
+"use client";
 
 import React, { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { TranscriptItem } from "@/app/types";
-import Image from "next/image";
 import { useTranscript } from "@/app/contexts/TranscriptContext";
-import { DownloadIcon, ClipboardCopyIcon } from "@radix-ui/react-icons";
+import { DownloadIcon, CopyIcon, CheckIcon } from "lucide-react";
 import { GuardrailChip } from "./GuardrailChip";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/app/lib/utils";
 
 export interface TranscriptProps {
   userText: string;
@@ -52,7 +53,6 @@ function Transcript({
     setPrevLogs(transcriptItems);
   }, [transcriptItems]);
 
-  // Autofocus on text box input on load
   useEffect(() => {
     if (canSend && inputRef.current) {
       inputRef.current.focus();
@@ -71,166 +71,176 @@ function Transcript({
   };
 
   return (
-    <div className="flex flex-col flex-1 bg-white min-h-0 rounded-xl">
-      <div className="flex flex-col flex-1 min-h-0">
-        <div className="flex items-center justify-between px-6 py-3 sticky top-0 z-10 text-base border-b bg-white rounded-t-xl">
-          <span className="font-semibold">Transcript</span>
-          <div className="flex gap-x-2">
-            <button
-              onClick={handleCopyTranscript}
-              className="w-24 text-sm px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 flex items-center justify-center gap-x-1"
-            >
-              <ClipboardCopyIcon />
-              {justCopied ? "Copied!" : "Copy"}
-            </button>
-            <button
-              onClick={downloadRecording}
-              className="w-40 text-sm px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 flex items-center justify-center gap-x-1"
-            >
-              <DownloadIcon />
-              <span>Download Audio</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Transcript Content */}
-        <div
-          ref={transcriptRef}
-          className="overflow-auto p-4 flex flex-col gap-y-4 h-full"
-        >
-          {[...transcriptItems]
-            .sort((a, b) => a.createdAtMs - b.createdAtMs)
-            .map((item) => {
-              const {
-                itemId,
-                type,
-                role,
-                data,
-                expanded,
-                timestamp,
-                title = "",
-                isHidden,
-                guardrailResult,
-              } = item;
-
-            if (isHidden) {
-              return null;
-            }
-
-            if (type === "MESSAGE") {
-              const isUser = role === "user";
-              const containerClasses = `flex justify-end flex-col ${
-                isUser ? "items-end" : "items-start"
-              }`;
-              const bubbleBase = `max-w-lg p-3 ${
-                isUser ? "bg-gray-900 text-gray-100" : "bg-gray-100 text-black"
-              }`;
-              const isBracketedMessage =
-                title.startsWith("[") && title.endsWith("]");
-              const messageStyle = isBracketedMessage
-                ? 'italic text-gray-400'
-                : '';
-              const displayTitle = isBracketedMessage
-                ? title.slice(1, -1)
-                : title;
-
-              return (
-                <div key={itemId} className={containerClasses}>
-                  <div className="max-w-lg">
-                    <div
-                      className={`${bubbleBase} rounded-t-xl ${
-                        guardrailResult ? "" : "rounded-b-xl"
-                      }`}
-                    >
-                      <div
-                        className={`text-xs ${
-                          isUser ? "text-gray-400" : "text-gray-500"
-                        } font-mono`}
-                      >
-                        {timestamp}
-                      </div>
-                      <div className={`whitespace-pre-wrap ${messageStyle}`}>
-                        <ReactMarkdown>{displayTitle}</ReactMarkdown>
-                      </div>
-                    </div>
-                    {guardrailResult && (
-                      <div className="bg-gray-200 px-3 py-2 rounded-b-xl">
-                        <GuardrailChip guardrailResult={guardrailResult} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            } else if (type === "BREADCRUMB") {
-              return (
-                <div
-                  key={itemId}
-                  className="flex flex-col justify-start items-start text-gray-500 text-sm"
-                >
-                  <span className="text-xs font-mono">{timestamp}</span>
-                  <div
-                    className={`whitespace-pre-wrap flex items-center font-mono text-sm text-gray-800 ${
-                      data ? "cursor-pointer" : ""
-                    }`}
-                    onClick={() => data && toggleTranscriptItemExpand(itemId)}
-                  >
-                    {data && (
-                      <span
-                        className={`text-gray-400 mr-1 transform transition-transform duration-200 select-none font-mono ${
-                          expanded ? "rotate-90" : "rotate-0"
-                        }`}
-                      >
-                        ▶
-                      </span>
-                    )}
-                    {title}
-                  </div>
-                  {expanded && data && (
-                    <div className="text-gray-800 text-left">
-                      <pre className="border-l-2 ml-1 border-gray-200 whitespace-pre-wrap break-words font-mono text-xs mb-2 mt-2 pl-2">
-                        {JSON.stringify(data, null, 2)}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-              );
-            } else {
-              // Fallback if type is neither MESSAGE nor BREADCRUMB
-              return (
-                <div
-                  key={itemId}
-                  className="flex justify-center text-gray-500 text-sm italic font-mono"
-                >
-                  Unknown item type: {type}{" "}
-                  <span className="ml-2 text-xs">{timestamp}</span>
-                </div>
-              );
-            }
-          })}
+    <div className="flex flex-col flex-1 min-h-0 glass rounded-2xl overflow-hidden border border-white/5 shadow-2xl">
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-white/5 backdrop-blur-xl z-10">
+        <h2 className="font-semibold text-lg text-white tracking-tight">
+          Transcript
+        </h2>
+        <div className="flex gap-2">
+          <button
+            onClick={handleCopyTranscript}
+            className="p-2 rounded-lg hover:bg-white/10 text-cyber-300 transition-all duration-200 group relative"
+            title="Copy Transcript"
+          >
+            {justCopied ? (
+              <CheckIcon className="w-4 h-4 text-neon-emerald" />
+            ) : (
+              <CopyIcon className="w-4 h-4" />
+            )}
+          </button>
+          <button
+            onClick={downloadRecording}
+            className="p-2 rounded-lg hover:bg-white/10 text-cyber-300 transition-all duration-200"
+            title="Download Audio"
+          >
+            <DownloadIcon className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      <div className="p-4 flex items-center gap-x-2 flex-shrink-0 border-t border-gray-200">
-        <input
-          ref={inputRef}
-          type="text"
-          value={userText}
-          onChange={(e) => setUserText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && canSend) {
-              onSendMessage();
-            }
-          }}
-          className="flex-1 px-4 py-2 focus:outline-none"
-          placeholder="Type a message..."
-        />
-        <button
-          onClick={onSendMessage}
-          disabled={!canSend || !userText.trim()}
-          className="bg-gray-900 text-white rounded-full px-2 py-2 disabled:opacity-50"
-        >
-          <Image src="arrow.svg" alt="Send" width={24} height={24} />
-        </button>
+      {/* Messages Area */}
+      <div
+        ref={transcriptRef}
+        className="flex-1 overflow-y-auto p-6 scroll-smooth relative"
+      >
+        <div className="flex flex-col gap-6 pb-4">
+          <AnimatePresence initial={false}>
+            {transcriptItems
+              .sort((a, b) => a.createdAtMs - b.createdAtMs)
+              .map((item) => {
+                const {
+                  itemId,
+                  type,
+                  role,
+                  data,
+                  expanded,
+                  timestamp,
+                  title = "",
+                  isHidden,
+                  guardrailResult,
+                } = item;
+
+                if (isHidden) return null;
+
+                if (type === "MESSAGE") {
+                  const isUser = role === "user";
+                  const isBracketedMessage = title.startsWith("[") && title.endsWith("]");
+                  
+                  return (
+                    <motion.div
+                      key={itemId}
+                      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      className={cn(
+                        "flex flex-col",
+                        isUser ? "items-end" : "items-start"
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "max-w-[80%] rounded-2xl p-4 shadow-lg backdrop-blur-sm border border-white/5 transition-all duration-300",
+                          isUser
+                            ? "bg-gradient-to-br from-neon-purple/20 to-blue-600/20 text-white rounded-tr-none"
+                            : "bg-cyber-800/80 text-cyber-100 rounded-tl-none hover:bg-cyber-800/90"
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-4 mb-1 opacity-60 text-[10px] uppercase tracking-wider font-medium">
+                          <span>{isUser ? "You" : "Agent"}</span>
+                          <span>{timestamp}</span>
+                        </div>
+                        
+                        <div className={cn(
+                          "prose prose-invert prose-p:leading-relaxed prose-pre:bg-black/50 max-w-none",
+                          isBracketedMessage && "italic opacity-70"
+                        )}>
+                          <ReactMarkdown>{title.replace(/^\[|\]$/g, "")}</ReactMarkdown>
+                        </div>
+
+                        {guardrailResult && (
+                          <div className="mt-3 pt-3 border-t border-white/10">
+                            <GuardrailChip guardrailResult={guardrailResult} />
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                }
+
+                if (type === "BREADCRUMB") {
+                  return (
+                    <motion.div
+                      key={itemId}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="flex flex-col gap-1 pl-4 border-l-2 border-white/10 my-2 group"
+                    >
+                      <div 
+                        onClick={() => data && toggleTranscriptItemExpand(itemId)}
+                        className={cn(
+                          "flex items-center gap-2 text-xs font-mono transition-colors",
+                          data ? "cursor-pointer text-cyber-400 hover:text-neon-cyan" : "text-cyber-500"
+                        )}
+                      >
+                        <span className="opacity-50">{timestamp}</span>
+                        <span className="font-medium">{title}</span>
+                        {data && (
+                          <span className={cn(
+                            "transform transition-transform duration-200 text-[10px]",
+                            expanded ? "rotate-90" : "rotate-0"
+                          )}>▶</span>
+                        )}
+                      </div>
+                      
+                      <AnimatePresence>
+                        {expanded && data && (
+                          <motion.pre
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="text-[10px] bg-black/30 p-3 rounded-lg overflow-x-auto font-mono text-cyber-300 mt-1 border border-white/5"
+                          >
+                            {JSON.stringify(data, null, 2)}
+                          </motion.pre>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  );
+                }
+                return null;
+              })}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Input Area */}
+      <div className="p-4 bg-white/5 backdrop-blur-md border-t border-white/5">
+        <div className="relative group">
+          <input
+            ref={inputRef}
+            type="text"
+            value={userText}
+            onChange={(e) => setUserText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && canSend) {
+                onSendMessage();
+              }
+            }}
+            disabled={!canSend}
+            placeholder={canSend ? "Type a message..." : "Connecting..."}
+            className="w-full bg-cyber-900/50 text-white placeholder-cyber-400/50 px-5 py-4 pr-12 rounded-full border border-white/10 focus:border-neon-purple/50 focus:ring-2 focus:ring-neon-purple/20 focus:outline-none transition-all duration-300 shadow-inner disabled:opacity-50 disabled:cursor-not-allowed"
+          />
+          <button
+            onClick={onSendMessage}
+            disabled={!canSend || !userText.trim()}
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-gradient-to-r from-neon-purple to-neon-cyan rounded-full text-white shadow-lg hover:shadow-neon-cyan/30 hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-0 disabled:scale-50"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 2L11 13" />
+              <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   );

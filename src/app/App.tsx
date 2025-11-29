@@ -1,9 +1,12 @@
 "use client";
+
 import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
-
 import Image from "next/image";
+import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
+import { MessageSquare, Terminal, Activity } from "lucide-react";
 
 // UI components
 import Transcript from "./components/Transcript";
@@ -41,26 +44,9 @@ import { useCustomAgents } from "./hooks/useCustomAgents";
 
 function App() {
   const searchParams = useSearchParams()!;
-
-  // ---------------------------------------------------------------------
-  // Codec selector – lets you toggle between wide-band Opus (48 kHz)
-  // and narrow-band PCMU/PCMA (8 kHz) to hear what the agent sounds like on
-  // a traditional phone line and to validate ASR / VAD behaviour under that
-  // constraint.
-  //
-  // We read the `?codec=` query-param and rely on the `changePeerConnection`
-  // hook (configured in `useRealtimeSession`) to set the preferred codec
-  // before the offer/answer negotiation.
-  // ---------------------------------------------------------------------
   const urlCodec = searchParams.get("codec") || "opus";
 
-  // Agents SDK doesn't currently support codec selection so it is now forced 
-  // via global codecPatch at module load 
-
-  const {
-    addTranscriptMessage,
-    addTranscriptBreadcrumb,
-  } = useTranscript();
+  const { addTranscriptMessage, addTranscriptBreadcrumb } = useTranscript();
   const { logClientEvent, logServerEvent } = useEvent();
 
   // Load custom agents from the Agent Builder
@@ -79,12 +65,8 @@ function App() {
   }), [customAgentSets]);
 
   const [selectedAgentName, setSelectedAgentName] = useState<string>("");
-  const [selectedAgentConfigSet, setSelectedAgentConfigSet] = useState<
-    RealtimeAgent[] | null
-  >(null);
-
+  const [selectedAgentConfigSet, setSelectedAgentConfigSet] = useState<RealtimeAgent[] | null>(null);
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
-  // Ref to identify whether the latest agent switch came from an automatic handoff
   const handoffTriggeredRef = useRef(false);
 
   const sdkAudioElement = React.useMemo(() => {
@@ -96,7 +78,6 @@ function App() {
     return el;
   }, []);
 
-  // Attach SDK audio element once it exists (after first render in browser)
   useEffect(() => {
     if (sdkAudioElement && !audioElementRef.current) {
       audioElementRef.current = sdkAudioElement;
@@ -118,39 +99,22 @@ function App() {
     },
   });
 
-  const [sessionStatus, setSessionStatus] =
-    useState<SessionStatus>("DISCONNECTED");
-
-  const [isEventsPaneExpanded, setIsEventsPaneExpanded] =
-    useState<boolean>(true);
+  const [sessionStatus, setSessionStatus] = useState<SessionStatus>("DISCONNECTED");
+  const [isEventsPaneExpanded, setIsEventsPaneExpanded] = useState<boolean>(true);
   const [userText, setUserText] = useState<string>("");
   const [isPTTActive, setIsPTTActive] = useState<boolean>(false);
   const [isPTTUserSpeaking, setIsPTTUserSpeaking] = useState<boolean>(false);
-  const [isAudioPlaybackEnabled, setIsAudioPlaybackEnabled] = useState<boolean>(
-    () => {
-      if (typeof window === 'undefined') return true;
-      const stored = localStorage.getItem('audioPlaybackEnabled');
-      return stored ? stored === 'true' : true;
-    },
-  );
+  const [isAudioPlaybackEnabled, setIsAudioPlaybackEnabled] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    const stored = localStorage.getItem('audioPlaybackEnabled');
+    return stored ? stored === 'true' : true;
+  });
 
-  // Initialize the recording hook.
-  const { startRecording, stopRecording, downloadRecording } =
-    useAudioDownload();
-
-  const sendClientEvent = (eventObj: any, eventNameSuffix = "") => {
-    try {
-      sendEvent(eventObj);
-      logClientEvent(eventObj, eventNameSuffix);
-    } catch (err) {
-      console.error('Failed to send via SDK', err);
-    }
-  };
+  const { startRecording, stopRecording, downloadRecording } = useAudioDownload();
 
   useHandleSessionHistory();
 
   useEffect(() => {
-    // Wait for custom agents to load
     if (!customAgentsLoaded) return;
 
     let finalAgentConfig = searchParams.get("agentConfig");
@@ -176,17 +140,10 @@ function App() {
   }, [selectedAgentName]);
 
   useEffect(() => {
-    if (
-      sessionStatus === "CONNECTED" &&
-      selectedAgentConfigSet &&
-      selectedAgentName
-    ) {
-      const currentAgent = selectedAgentConfigSet.find(
-        (a) => a.name === selectedAgentName
-      );
+    if (sessionStatus === "CONNECTED" && selectedAgentConfigSet && selectedAgentName) {
+      const currentAgent = selectedAgentConfigSet.find((a) => a.name === selectedAgentName);
       addTranscriptBreadcrumb(`Agent: ${selectedAgentName}`, currentAgent);
       updateSession(!handoffTriggeredRef.current);
-      // Reset flag after handling so subsequent effects behave normally
       handoffTriggeredRef.current = false;
     }
   }, [selectedAgentConfigSet, selectedAgentName, sessionStatus]);
@@ -223,7 +180,6 @@ function App() {
         const EPHEMERAL_KEY = await fetchEphemeralKey();
         if (!EPHEMERAL_KEY) return;
 
-        // Ensure the selectedAgentName is first so that it becomes the root
         const reorderedAgents = [...mergedSdkScenarioMap[agentSetKey]];
         const idx = reorderedAgents.findIndex((a) => a.name === selectedAgentName);
         if (idx > 0) {
@@ -231,11 +187,10 @@ function App() {
           reorderedAgents.unshift(agent);
         }
 
-        // Determine company name for guardrails
         const companyName = agentSetKey === 'customerServiceRetail'
           ? customerServiceRetailCompanyName
           : agentSetKey.startsWith('custom_')
-          ? agentSetKey.replace('custom_', '') // Use agent name for custom agents
+          ? agentSetKey.replace('custom_', '')
           : chatSupervisorCompanyName;
         const guardrail = createModerationGuardrail(companyName);
 
@@ -244,9 +199,7 @@ function App() {
           initialAgents: reorderedAgents,
           audioElement: sdkAudioElement,
           outputGuardrails: [guardrail],
-          extraContext: {
-            addTranscriptBreadcrumb,
-          },
+          extraContext: { addTranscriptBreadcrumb },
         });
       } catch (err) {
         console.error("Error connecting via SDK:", err);
@@ -265,8 +218,7 @@ function App() {
   const sendSimulatedUserMessage = (text: string) => {
     const id = uuidv4().slice(0, 32);
     addTranscriptMessage(id, "user", text, true);
-
-    sendClientEvent({
+    sendEvent({
       type: 'conversation.item.create',
       item: {
         id,
@@ -275,73 +227,56 @@ function App() {
         content: [{ type: 'input_text', text }],
       },
     });
-    sendClientEvent({ type: 'response.create' }, '(simulated user text message)');
+    sendEvent({ type: 'response.create' });
   };
 
   const updateSession = (shouldTriggerResponse: boolean = false) => {
-    // Reflect Push-to-Talk UI state by (de)activating server VAD on the
-    // backend. The Realtime SDK supports live session updates via the
-    // `session.update` event.
-    const turnDetection = isPTTActive
-      ? null
-      : {
-          type: 'server_vad',
-          threshold: 0.9,
-          prefix_padding_ms: 300,
-          silence_duration_ms: 500,
-          create_response: true,
-        };
+    const turnDetection = isPTTActive ? null : {
+      type: 'server_vad',
+      threshold: 0.9,
+      prefix_padding_ms: 300,
+      silence_duration_ms: 500,
+      create_response: true,
+    };
 
     sendEvent({
       type: 'session.update',
-      session: {
-        turn_detection: turnDetection,
-      },
+      session: { turn_detection: turnDetection },
     });
 
-    // Send an initial 'hi' message to trigger the agent to greet the user
     if (shouldTriggerResponse) {
       sendSimulatedUserMessage('hi');
     }
-    return;
-  }
+  };
 
   const handleSendTextMessage = () => {
     if (!userText.trim()) return;
     interrupt();
-
     try {
       sendUserText(userText.trim());
     } catch (err) {
       console.error('Failed to send via SDK', err);
     }
-
     setUserText("");
   };
 
   const handleTalkButtonDown = () => {
     if (sessionStatus !== 'CONNECTED') return;
     interrupt();
-
     setIsPTTUserSpeaking(true);
-    sendClientEvent({ type: 'input_audio_buffer.clear' }, 'clear PTT buffer');
-
-    // No placeholder; we'll rely on server transcript once ready.
+    sendEvent({ type: 'input_audio_buffer.clear' });
   };
 
   const handleTalkButtonUp = () => {
-    if (sessionStatus !== 'CONNECTED' || !isPTTUserSpeaking)
-      return;
-
+    if (sessionStatus !== 'CONNECTED' || !isPTTUserSpeaking) return;
     setIsPTTUserSpeaking(false);
-    sendClientEvent({ type: 'input_audio_buffer.commit' }, 'commit PTT');
-    sendClientEvent({ type: 'response.create' }, 'trigger response PTT');
+    sendEvent({ type: 'input_audio_buffer.commit' });
+    sendEvent({ type: 'response.create' });
   };
 
   const onToggleConnection = () => {
     if (sessionStatus === "CONNECTED" || sessionStatus === "CONNECTING") {
       disconnectFromRealtime();
-      setSessionStatus("DISCONNECTED");
     } else {
       connectToRealtime();
     }
@@ -354,18 +289,12 @@ function App() {
     window.location.replace(url.toString());
   };
 
-  const handleSelectedAgentChange = (
-    e: React.ChangeEvent<HTMLSelectElement>
-  ) => {
+  const handleSelectedAgentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newAgentName = e.target.value;
-    // Reconnect session with the newly selected agent as root so that tool
-    // execution works correctly.
     disconnectFromRealtime();
     setSelectedAgentName(newAgentName);
-    // connectToRealtime will be triggered by effect watching selectedAgentName
   };
 
-  // Because we need a new connection, refresh the page when codec changes
   const handleCodecChange = (newCodec: string) => {
     const url = new URL(window.location.toString());
     url.searchParams.set("codec", newCodec);
@@ -374,199 +303,139 @@ function App() {
 
   useEffect(() => {
     const storedPushToTalkUI = localStorage.getItem("pushToTalkUI");
-    if (storedPushToTalkUI) {
-      setIsPTTActive(storedPushToTalkUI === "true");
-    }
+    if (storedPushToTalkUI) setIsPTTActive(storedPushToTalkUI === "true");
     const storedLogsExpanded = localStorage.getItem("logsExpanded");
-    if (storedLogsExpanded) {
-      setIsEventsPaneExpanded(storedLogsExpanded === "true");
-    }
-    const storedAudioPlaybackEnabled = localStorage.getItem(
-      "audioPlaybackEnabled"
-    );
-    if (storedAudioPlaybackEnabled) {
-      setIsAudioPlaybackEnabled(storedAudioPlaybackEnabled === "true");
-    }
+    if (storedLogsExpanded) setIsEventsPaneExpanded(storedLogsExpanded === "true");
+    const storedAudioPlaybackEnabled = localStorage.getItem("audioPlaybackEnabled");
+    if (storedAudioPlaybackEnabled) setIsAudioPlaybackEnabled(storedAudioPlaybackEnabled === "true");
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem("pushToTalkUI", isPTTActive.toString());
-  }, [isPTTActive]);
-
-  useEffect(() => {
-    localStorage.setItem("logsExpanded", isEventsPaneExpanded.toString());
-  }, [isEventsPaneExpanded]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "audioPlaybackEnabled",
-      isAudioPlaybackEnabled.toString()
-    );
-  }, [isAudioPlaybackEnabled]);
+  useEffect(() => { localStorage.setItem("pushToTalkUI", isPTTActive.toString()); }, [isPTTActive]);
+  useEffect(() => { localStorage.setItem("logsExpanded", isEventsPaneExpanded.toString()); }, [isEventsPaneExpanded]);
+  useEffect(() => { localStorage.setItem("audioPlaybackEnabled", isAudioPlaybackEnabled.toString()); }, [isAudioPlaybackEnabled]);
 
   useEffect(() => {
     if (audioElementRef.current) {
       if (isAudioPlaybackEnabled) {
         audioElementRef.current.muted = false;
-        audioElementRef.current.play().catch((err) => {
-          console.warn("Autoplay may be blocked by browser:", err);
-        });
+        audioElementRef.current.play().catch(err => console.warn("Autoplay blocked:", err));
       } else {
-        // Mute and pause to avoid brief audio blips before pause takes effect.
         audioElementRef.current.muted = true;
         audioElementRef.current.pause();
       }
     }
-
-    // Toggle server-side audio stream mute so bandwidth is saved when the
-    // user disables playback. 
-    try {
-      mute(!isAudioPlaybackEnabled);
-    } catch (err) {
-      console.warn('Failed to toggle SDK mute', err);
-    }
+    try { mute(!isAudioPlaybackEnabled); } catch (err) { console.warn('Failed to toggle mute', err); }
   }, [isAudioPlaybackEnabled]);
 
-  // Ensure mute state is propagated to transport right after we connect or
-  // whenever the SDK client reference becomes available.
   useEffect(() => {
     if (sessionStatus === 'CONNECTED') {
-      try {
-        mute(!isAudioPlaybackEnabled);
-      } catch (err) {
-        console.warn('mute sync after connect failed', err);
-      }
+      try { mute(!isAudioPlaybackEnabled); } catch (err) { console.warn('mute sync failed', err); }
     }
   }, [sessionStatus, isAudioPlaybackEnabled]);
 
   useEffect(() => {
     if (sessionStatus === "CONNECTED" && audioElementRef.current?.srcObject) {
-      // The remote audio stream from the audio element.
-      const remoteStream = audioElementRef.current.srcObject as MediaStream;
-      startRecording(remoteStream);
+      startRecording(audioElementRef.current.srcObject as MediaStream);
     }
-
-    // Clean up on unmount or when sessionStatus is updated.
-    return () => {
-      stopRecording();
-    };
+    return () => stopRecording();
   }, [sessionStatus]);
 
   const agentSetKey = searchParams.get("agentConfig") || "default";
 
   return (
-    <div className="text-base flex flex-col h-screen bg-gray-100 text-gray-800 relative">
-      <div className="p-5 text-lg font-semibold flex justify-between items-center">
-        <div
-          className="flex items-center cursor-pointer"
-          onClick={() => window.location.reload()}
+    <div className="flex flex-col h-screen w-full bg-gradient-to-br from-cyber-900 via-cyber-800 to-cyber-900 text-white overflow-hidden font-sans selection:bg-neon-cyan/30">
+      
+      {/* Floating Header */}
+      <div className="absolute top-6 left-0 right-0 px-6 z-20 flex justify-center pointer-events-none">
+        <motion.div 
+          initial={{ y: -50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="flex items-center gap-6 p-2 pl-6 pr-2 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-full shadow-2xl pointer-events-auto"
         >
-          <div>
+          <div className="flex items-center gap-3">
             <Image
               src="/openai-logomark.svg"
-              alt="Voice Agent Logo"
-              width={20}
-              height={20}
-              className="mr-2"
+              alt="Logo"
+              width={24}
+              height={24}
+              className="opacity-80 hover:opacity-100 transition-opacity"
             />
-          </div>
-          <div>
-            Voice Agent <span className="text-gray-500">Platform</span>
-          </div>
-        </div>
-        <div className="flex items-center">
-          <a
-            href="/builder"
-            className="mr-6 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-lg font-medium transition-colors"
-          >
-            Agent Builder
-          </a>
-          <label className="flex items-center text-base gap-1 mr-2 font-medium">
-            Scenario
-          </label>
-          <div className="relative inline-block">
-            <select
-              value={agentSetKey}
-              onChange={handleAgentChange}
-              className="appearance-none border border-gray-300 rounded-lg text-base px-2 py-1 pr-8 cursor-pointer font-normal focus:outline-none"
-            >
-              {/* Built-in agents */}
-              {Object.keys(allAgentSets).map((agentKey) => (
-                <option key={agentKey} value={agentKey}>
-                  {agentKey}
-                </option>
-              ))}
-              {/* Custom agents from builder */}
-              {Object.keys(customAgentSets).length > 0 && (
-                <option disabled>──────────</option>
-              )}
-              {Object.keys(customAgentSets).map((agentKey) => (
-                <option key={agentKey} value={agentKey}>
-                  ✨ {agentKey.replace('custom_', '')}
-                </option>
-              ))}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-gray-600">
-              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M5.23 7.21a.75.75 0 011.06.02L10 10.44l3.71-3.21a.75.75 0 111.04 1.08l-4.25 3.65a.75.75 0 01-1.04 0L5.21 8.27a.75.75 0 01.02-1.06z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
+            <span className="font-medium text-sm tracking-wide text-white/90">
+              Voice Agent <span className="text-white/40">Platform</span>
+            </span>
           </div>
 
-          {agentSetKey && (
-            <div className="flex items-center ml-6">
-              <label className="flex items-center text-base gap-1 mr-2 font-medium">
-                Agent
-              </label>
-              <div className="relative inline-block">
+          <div className="w-px h-6 bg-white/10" />
+
+          <div className="flex items-center gap-3">
+            <div className="relative group">
+              <select
+                value={agentSetKey}
+                onChange={handleAgentChange}
+                className="bg-transparent text-sm text-white/80 font-medium appearance-none cursor-pointer outline-none pr-4 hover:text-white transition-colors"
+              >
+                {Object.keys(allAgentSets).map((key) => (
+                  <option key={key} value={key} className="bg-cyber-900 text-white">{key}</option>
+                ))}
+                {Object.keys(customAgentSets).length > 0 && <option disabled>──────────</option>}
+                {Object.keys(customAgentSets).map((key) => (
+                  <option key={key} value={key} className="bg-cyber-900 text-white">✨ {key.replace('custom_', '')}</option>
+                ))}
+              </select>
+            </div>
+
+            {agentSetKey && (
+              <div className="relative group">
                 <select
                   value={selectedAgentName}
                   onChange={handleSelectedAgentChange}
-                  className="appearance-none border border-gray-300 rounded-lg text-base px-2 py-1 pr-8 cursor-pointer font-normal focus:outline-none"
+                  className="bg-white/10 hover:bg-white/20 text-sm text-neon-cyan font-medium appearance-none cursor-pointer outline-none px-3 py-1 rounded-full transition-all"
                 >
                   {selectedAgentConfigSet?.map((agent) => (
-                    <option key={agent.name} value={agent.name}>
-                      {agent.name}
-                    </option>
+                    <option key={agent.name} value={agent.name} className="bg-cyber-900 text-white">{agent.name}</option>
                   ))}
                 </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-gray-600">
-                  <svg
-                    className="h-4 w-4"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M5.23 7.21a.75.75 0 011.06.02L10 10.44l3.71-3.21a.75.75 0 111.04 1.08l-4.25 3.65a.75.75 0 01-1.04 0L5.21 8.27a.75.75 0 01.02-1.06z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
               </div>
-            </div>
+            )}
+          </div>
+
+          <Link
+            href="/builder"
+            className="ml-2 px-4 py-1.5 bg-neon-purple/20 hover:bg-neon-purple/30 text-neon-purple text-xs font-medium rounded-full transition-all border border-neon-purple/20 hover:border-neon-purple/40"
+          >
+            Open Builder
+          </Link>
+        </motion.div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex flex-1 relative z-10 p-4 pt-24 gap-4 max-w-7xl mx-auto w-full h-full">
+        
+        {/* Left Panel: Transcript */}
+        <motion.div 
+          initial={{ x: -20, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          className="flex flex-1 min-w-0 h-full"
+        >
+          <Transcript
+            userText={userText}
+            setUserText={setUserText}
+            onSendMessage={handleSendTextMessage}
+            canSend={sessionStatus === "CONNECTED"}
+            downloadRecording={downloadRecording}
+          />
+        </motion.div>
+
+        {/* Right Panel: Events (Collapsible) */}
+        <AnimatePresence>
+          {isEventsPaneExpanded && (
+            <Events isExpanded={isEventsPaneExpanded} />
           )}
-        </div>
+        </AnimatePresence>
+
       </div>
 
-      <div className="flex flex-1 gap-2 px-2 overflow-hidden relative">
-        <Transcript
-          userText={userText}
-          setUserText={setUserText}
-          onSendMessage={handleSendTextMessage}
-          downloadRecording={downloadRecording}
-          canSend={
-            sessionStatus === "CONNECTED"
-          }
-        />
-
-        <Events isExpanded={isEventsPaneExpanded} />
-      </div>
-
+      {/* Bottom Toolbar */}
       <BottomToolbar
         sessionStatus={sessionStatus}
         onToggleConnection={onToggleConnection}
@@ -582,6 +451,12 @@ function App() {
         codec={urlCodec}
         onCodecChange={handleCodecChange}
       />
+
+      {/* Background Elements */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-neon-purple/5 blur-[120px] animate-pulse-slow" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-neon-cyan/5 blur-[120px] animate-pulse-slow delay-1000" />
+      </div>
     </div>
   );
 }
