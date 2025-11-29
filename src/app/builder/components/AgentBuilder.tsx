@@ -17,17 +17,13 @@ export default function AgentBuilder() {
   // Convert built-in SCENARIOS to AgentConfig format
   // Show scenarios as single entries with friendly names, not individual sub-agents
   const SCENARIO_DISPLAY_INFO: Record<string, { name: string; description: string }> = {
-    simpleHandoff: {
-      name: 'Simple Handoff Demo',
-      description: 'A basic demo showing how agents can hand off conversations to each other'
+    customerSupport: {
+      name: '🎧 Customer Support',
+      description: 'Multi-tier support system with agent handoffs and escalation capabilities'
     },
-    customerServiceRetail: {
-      name: 'Customer Service (Retail)',
-      description: 'Full retail customer service with authentication, returns, and sales agents'
-    },
-    chatSupervisor: {
-      name: 'Chat Supervisor (NewTelco)',
-      description: 'Telecom support with a supervisor that delegates to specialized agents'
+    personalCoach: {
+      name: '🎯 Personal Coach',
+      description: 'Motivational coach for goal-setting, productivity, and personal development'
     }
   };
 

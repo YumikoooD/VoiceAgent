@@ -79,13 +79,12 @@ Engage in real-time voice conversations with your agents. The visualizer reacts 
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Built-in Scenarios
+### Built-in Demo Agents
 
-| Scenario | Description |
-|----------|-------------|
-| **Chat Supervisor** | Telecom support with intelligent task delegation |
-| **Customer Service** | Retail support with authentication, returns, and sales |
-| **Simple Handoff** | Basic demo of agent-to-agent transfers |
+| Agent | Description |
+|-------|-------------|
+| **🎧 Customer Support** | Multi-tier support with agent handoffs and escalation |
+| **🎯 Personal Coach** | Motivational coach for goals, productivity, and growth |
 
 ---
 
