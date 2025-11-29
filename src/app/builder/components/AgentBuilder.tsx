@@ -7,7 +7,7 @@ import AgentForm from './AgentForm';
 import AgentList from './AgentList';
 import PreviewPanel from './PreviewPanel';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Upload, Plus, Sparkles } from 'lucide-react';
+import { Download, Upload } from 'lucide-react';
 import AIAgentGenerator from './AIAgentGenerator';
 
 export default function AgentBuilder() {
@@ -121,40 +121,21 @@ export default function AgentBuilder() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 border-r border-white/10 pr-4">
-            <label 
-              className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white cursor-pointer transition-all duration-200 group" 
-              title="Import Agents"
-            >
-              <Upload className="w-4 h-4 group-hover:scale-110 transition-transform" />
-              <input type="file" accept=".json" onChange={handleImport} className="hidden" />
-            </label>
-            <button
-              onClick={exportAgents}
-              disabled={agents.length === 0}
-              className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all duration-200 group"
-              title="Export All"
-            >
-              <Download className="w-4 h-4 group-hover:scale-110 transition-transform" />
-            </button>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowAIGenerator(true)}
-              className="flex items-center gap-2 px-5 py-2 bg-white/5 hover:bg-white/10 text-neon-cyan text-sm font-medium rounded-full transition-all border border-neon-purple/30 hover:border-neon-cyan/50 hover:shadow-[0_0_15px_-5px_rgba(6,182,212,0.3)] group"
-            >
-              <Sparkles className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-              AI Generate
-            </button>
-            <button
-              onClick={handleCreateNew}
-              className="flex items-center gap-2 px-5 py-2 bg-white text-black hover:bg-gray-100 text-sm font-bold rounded-full transition-all hover:scale-105 active:scale-95 shadow-lg shadow-white/10"
-            >
-              <Plus className="w-4 h-4 stroke-[3]" />
-              New Agent
-            </button>
-          </div>
+          <label 
+            className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white cursor-pointer transition-all duration-200 group" 
+            title="Import Agents"
+          >
+            <Upload className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            <input type="file" accept=".json" onChange={handleImport} className="hidden" />
+          </label>
+          <button
+            onClick={exportAgents}
+            disabled={agents.length === 0}
+            className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all duration-200 group"
+            title="Export All"
+          >
+            <Download className="w-4 h-4 group-hover:scale-110 transition-transform" />
+          </button>
         </div>
       </header>
 

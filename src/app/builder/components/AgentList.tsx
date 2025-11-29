@@ -27,46 +27,8 @@ interface AgentListProps {
 }
 
 export default function AgentList({ agents, onEdit, onDelete, onPreview, onCreateNew, onAIGenerate }: AgentListProps) {
-  if (agents.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-32 text-center">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center mb-6 border border-white/5 relative"
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-neon-purple/20 to-neon-cyan/20 blur-xl rounded-full opacity-50" />
-          <Mic className="w-10 h-10 text-white/40 relative z-10" />
-        </motion.div>
-        
-        <h2 className="text-2xl font-light text-white mb-2 tracking-tight">No Agents Created</h2>
-        <p className="text-white/40 mb-10 max-w-sm leading-relaxed text-sm">
-          Get started by building your first custom voice agent. Define its personality, voice, and capabilities.
-        </p>
-        
-        <div className="flex items-center gap-4">
-          {onAIGenerate && (
-            <button
-              onClick={onAIGenerate}
-              className="flex items-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 text-neon-cyan text-sm font-medium rounded-full transition-all border border-neon-purple/30 hover:border-neon-cyan/50 hover:shadow-[0_0_20px_-5px_rgba(6,182,212,0.3)] group"
-            >
-              <Sparkles className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-              AI Generate
-            </button>
-          )}
-          <button
-            onClick={onCreateNew}
-            className="flex items-center gap-2 px-6 py-3 bg-white text-black hover:bg-gray-100 text-sm font-bold rounded-full transition-all hover:scale-105 active:scale-95 shadow-lg shadow-white/10"
-          >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            Create Manually
-          </button>
-        </div>
-      </div>
-    );
-  }
-
+  // Even when empty, we render the grid with the action cards
+  
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -76,37 +38,43 @@ export default function AgentList({ agents, onEdit, onDelete, onPreview, onCreat
             onClick={onAIGenerate}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="group relative flex flex-col items-center justify-center p-8 rounded-3xl border border-neon-purple/20 hover:border-neon-cyan/50 bg-gradient-to-br from-neon-purple/5 to-neon-cyan/5 hover:from-neon-purple/10 hover:to-neon-cyan/10 transition-all duration-300 min-h-[320px] overflow-hidden"
+            className="group relative flex flex-col items-center justify-center p-8 rounded-3xl border border-neon-purple/20 hover:border-neon-cyan/50 bg-gradient-to-br from-neon-purple/5 to-neon-cyan/5 hover:from-neon-purple/10 hover:to-neon-cyan/10 transition-all duration-300 min-h-[320px] overflow-hidden text-center"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-neon-purple/10 to-neon-cyan/10 opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-neon-purple/20 rounded-full blur-3xl group-hover:bg-neon-cyan/20 transition-colors" />
             
-            <div className="relative z-10 flex flex-col items-center">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-neon-purple/20 to-neon-cyan/20 group-hover:from-neon-purple/30 group-hover:to-neon-cyan/30 flex items-center justify-center mb-4 transition-all border border-neon-purple/20 group-hover:border-neon-cyan/40">
+            <div className="relative z-10 flex flex-col items-center justify-center h-full w-full">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-neon-purple/20 to-neon-cyan/20 group-hover:from-neon-purple/30 group-hover:to-neon-cyan/30 flex items-center justify-center mb-6 transition-all border border-neon-purple/20 group-hover:border-neon-cyan/40 shadow-[0_0_30px_-10px_rgba(139,92,246,0.3)] group-hover:shadow-[0_0_40px_-10px_rgba(6,182,212,0.5)]">
                 <Sparkles className="w-8 h-8 text-neon-cyan group-hover:rotate-12 transition-transform" />
               </div>
-              <span className="text-white/80 font-medium group-hover:text-white transition-colors block mb-2">AI Generate</span>
-              <span className="text-white/40 text-xs">Describe & create instantly</span>
+              <div className="flex flex-col items-center justify-center">
+                <span className="text-white font-medium text-lg mb-2 group-hover:text-white transition-colors">AI Generate</span>
+                <span className="text-white/40 text-xs font-medium tracking-wide">Describe & create instantly</span>
+              </div>
             </div>
           </motion.button>
         )}
 
-        {/* Create New Card */}
+        {/* Create Manually Card */}
         <motion.button
           onClick={onCreateNew}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
-          className="group relative flex flex-col items-center justify-center p-8 rounded-3xl border border-dashed border-white/10 hover:border-white/30 hover:bg-white/5 transition-all duration-300 min-h-[320px]"
+          className="group relative flex flex-col items-center justify-center p-8 rounded-3xl border border-dashed border-white/10 hover:border-white/30 bg-[#0a0a0a] hover:bg-[#0f0f0f] transition-all duration-300 min-h-[320px] text-center"
         >
-          <div className="w-16 h-16 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center mb-4 transition-colors">
-            <Plus className="w-8 h-8 text-white/40 group-hover:text-white/80 transition-colors" />
+          <div className="relative z-10 flex flex-col items-center justify-center h-full w-full">
+            <div className="w-16 h-16 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center mb-6 transition-colors border border-white/5 group-hover:border-white/10">
+              <Plus className="w-8 h-8 text-white/40 group-hover:text-white/80 transition-colors stroke-[1.5]" />
+            </div>
+            <div className="flex flex-col items-center justify-center">
+              <span className="text-white/60 font-medium text-lg mb-2 group-hover:text-white transition-colors">Create Manually</span>
+              <span className="text-white/30 text-xs font-medium tracking-wide">Full control over config</span>
+            </div>
           </div>
-          <span className="text-white/60 font-medium group-hover:text-white transition-colors block mb-2">Create Manually</span>
-          <span className="text-white/30 text-xs">Full control over config</span>
         </motion.button>
 
-        {/* Agent Cards */}
+        {/* Agent Cards (only if they exist) */}
         {agents.map((agent, index) => (
           <AgentCard
             key={agent.id}
