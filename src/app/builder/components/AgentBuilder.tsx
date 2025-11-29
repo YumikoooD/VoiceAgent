@@ -14,22 +14,36 @@ import { Download, Upload, Plus } from 'lucide-react';
 export default function AgentBuilder() {
   const { agents, isLoaded, saveAgent, deleteAgent, exportAgents, importAgents, exportSingleAgent } = useAgentStorage();
   
-  // Convert built-in agents to AgentConfig format
-  // Only show the PRIMARY agent from each scenario (the first one)
-  // This avoids cluttering the list with internal sub-agents like "authentication", "returns", etc.
+  // Convert built-in SCENARIOS to AgentConfig format
+  // Show scenarios as single entries with friendly names, not individual sub-agents
+  const SCENARIO_DISPLAY_INFO: Record<string, { name: string; description: string }> = {
+    simpleHandoff: {
+      name: 'Simple Handoff Demo',
+      description: 'A basic demo showing how agents can hand off conversations to each other'
+    },
+    customerServiceRetail: {
+      name: 'Customer Service (Retail)',
+      description: 'Full retail customer service with authentication, returns, and sales agents'
+    },
+    chatSupervisor: {
+      name: 'Chat Supervisor (NewTelco)',
+      description: 'Telecom support with a supervisor that delegates to specialized agents'
+    }
+  };
+
   const builtInAgents = React.useMemo(() => {
     return Object.entries(allAgentSets).map(([scenarioKey, agentSet]) => {
-      // Take only the first (primary) agent from each scenario
       const primaryAgent = agentSet[0];
       if (!primaryAgent) return null;
       
       const config = convertFromRealtimeAgent(primaryAgent, true);
-      // Use scenario key as ID for consistency
+      const displayInfo = SCENARIO_DISPLAY_INFO[scenarioKey];
+      
+      // Override with user-friendly scenario info
       config.id = `builtin_${scenarioKey}`;
-      // Add scenario context to the description if not already present
-      if (!config.handoffDescription) {
-        config.handoffDescription = `Built-in ${scenarioKey} scenario with ${agentSet.length} agent(s)`;
-      }
+      config.name = displayInfo?.name || scenarioKey;
+      config.handoffDescription = displayInfo?.description || `Built-in scenario with ${agentSet.length} agent(s)`;
+      
       return config;
     }).filter((agent): agent is AgentConfig => agent !== null);
   }, []);

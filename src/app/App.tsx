@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from "uuid";
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence } from "framer-motion";
-import { Settings, Mic } from "lucide-react";
+import { Settings } from "lucide-react";
 
 // UI components
 import Transcript from "./components/Transcript";
@@ -37,6 +37,13 @@ const sdkScenarioMap: Record<string, RealtimeAgent[]> = {
   simpleHandoff: simpleHandoffScenario,
   customerServiceRetail: customerServiceRetailScenario,
   chatSupervisor: chatSupervisorScenario,
+};
+
+// User-friendly display names for scenarios
+const SCENARIO_DISPLAY_NAMES: Record<string, string> = {
+  simpleHandoff: 'Simple Handoff Demo',
+  customerServiceRetail: 'Customer Service (Retail)',
+  chatSupervisor: 'Chat Supervisor (NewTelco)',
 };
 
 import useAudioDownload from "./hooks/useAudioDownload";
@@ -295,11 +302,6 @@ function App() {
     window.location.replace(url.toString());
   };
 
-  const handleSelectedAgentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newAgentName = e.target.value;
-    disconnectFromRealtime();
-    setSelectedAgentName(newAgentName);
-  };
 
   const handleCodecChange = (newCodec: string) => {
     const url = new URL(window.location.toString());
@@ -374,7 +376,9 @@ function App() {
               className="bg-transparent text-sm text-white/80 font-medium appearance-none cursor-pointer outline-none pr-2 hover:text-white transition-colors"
             >
               {Object.keys(allAgentSets).map((key) => (
-                <option key={key} value={key} className="bg-cyber-900 text-white">{key}</option>
+                <option key={key} value={key} className="bg-cyber-900 text-white">
+                  {SCENARIO_DISPLAY_NAMES[key] || key}
+                </option>
               ))}
               {Object.keys(customAgentSets).length > 0 && <option disabled>──────────</option>}
               {Object.keys(customAgentSets).map((key) => (
@@ -382,21 +386,6 @@ function App() {
               ))}
             </select>
           </div>
-
-          {agentSetKey && (
-             <div className="flex items-center gap-2 bg-white/5 rounded-full px-4 py-1.5 border border-white/5">
-               <Mic className="w-4 h-4 text-cyber-500" />
-                <select
-                  value={selectedAgentName}
-                  onChange={handleSelectedAgentChange}
-                  className="bg-transparent text-sm text-neon-cyan font-medium appearance-none cursor-pointer outline-none pr-2"
-                >
-                  {selectedAgentConfigSet?.map((agent) => (
-                    <option key={agent.name} value={agent.name} className="bg-cyber-900 text-white">{agent.name}</option>
-                  ))}
-                </select>
-             </div>
-            )}
         </div>
 
         <div className="flex items-center gap-4">
