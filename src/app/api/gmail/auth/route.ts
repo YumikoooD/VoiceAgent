@@ -16,9 +16,13 @@ export async function GET() {
   }
 
   const scopes = [
+    // Gmail scopes
     'https://www.googleapis.com/auth/gmail.readonly',
     'https://www.googleapis.com/auth/gmail.send',
     'https://www.googleapis.com/auth/gmail.modify',
+    // Calendar scopes
+    'https://www.googleapis.com/auth/calendar.readonly',
+    'https://www.googleapis.com/auth/calendar.events',
   ];
 
   const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');

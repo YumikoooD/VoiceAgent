@@ -96,12 +96,12 @@ export const CALENDAR_TOOLS: ToolConfig[] = [
   {
     id: 'calendar_list_events',
     name: 'calendar_list_events',
-    description: 'List upcoming calendar events.',
+    description: 'List upcoming calendar events from the user\'s Google Calendar. Returns event title, time, location, and attendees.',
     parameters: [
       {
         name: 'limit',
         type: 'number',
-        description: 'Max events to fetch',
+        description: 'Maximum number of events to fetch (default: 10)',
         required: false
       }
     ]
@@ -109,7 +109,7 @@ export const CALENDAR_TOOLS: ToolConfig[] = [
   {
     id: 'calendar_create_event',
     name: 'calendar_create_event',
-    description: 'Schedule a new event on the calendar.',
+    description: 'Schedule a new event on the user\'s Google Calendar.',
     parameters: [
       {
         name: 'summary',
@@ -120,14 +120,82 @@ export const CALENDAR_TOOLS: ToolConfig[] = [
       {
         name: 'startTime',
         type: 'string',
-        description: 'ISO string for start time',
+        description: 'Start time in ISO format (e.g., 2025-12-01T14:00:00)',
         required: true
       },
       {
         name: 'endTime',
         type: 'string',
-        description: 'ISO string for end time',
+        description: 'End time in ISO format (e.g., 2025-12-01T15:00:00)',
         required: true
+      },
+      {
+        name: 'description',
+        type: 'string',
+        description: 'Description or notes for the event',
+        required: false
+      },
+      {
+        name: 'location',
+        type: 'string',
+        description: 'Location of the event',
+        required: false
+      }
+    ]
+  },
+  {
+    id: 'calendar_delete_event',
+    name: 'calendar_delete_event',
+    description: 'Delete an event from the calendar by its ID.',
+    parameters: [
+      {
+        name: 'eventId',
+        type: 'string',
+        description: 'The unique ID of the event to delete',
+        required: true
+      }
+    ]
+  },
+  {
+    id: 'calendar_update_event',
+    name: 'calendar_update_event',
+    description: 'Update an existing calendar event.',
+    parameters: [
+      {
+        name: 'eventId',
+        type: 'string',
+        description: 'The unique ID of the event to update',
+        required: true
+      },
+      {
+        name: 'summary',
+        type: 'string',
+        description: 'New title for the event',
+        required: false
+      },
+      {
+        name: 'startTime',
+        type: 'string',
+        description: 'New start time in ISO format',
+        required: false
+      },
+      {
+        name: 'endTime',
+        type: 'string',
+        description: 'New end time in ISO format',
+        required: false
+      },
+      {
+        name: 'description',
+        type: 'string',
+        description: 'New description for the event',
+        required: false
+      },
+      {
+        name: 'location',
+        type: 'string',
+        description: 'New location for the event',
+        required: false
       }
     ]
   }
@@ -140,6 +208,40 @@ export interface ToolLibrary {
   icon: string;
   tools: ToolConfig[];
 }
+
+// Example webhook tool templates
+export const WEBHOOK_TOOLS: ToolConfig[] = [
+  {
+    id: 'webhook_get_data',
+    name: 'webhook_get_data',
+    description: 'Fetch data from an external API endpoint.',
+    parameters: [
+      {
+        name: 'query',
+        type: 'string',
+        description: 'Search query or identifier',
+        required: false
+      }
+    ],
+    webhookUrl: '', // User needs to configure this
+    webhookMethod: 'GET'
+  },
+  {
+    id: 'webhook_post_data',
+    name: 'webhook_post_data',
+    description: 'Send data to an external API endpoint.',
+    parameters: [
+      {
+        name: 'data',
+        type: 'object',
+        description: 'Data to send to the webhook',
+        required: true
+      }
+    ],
+    webhookUrl: '', // User needs to configure this
+    webhookMethod: 'POST'
+  }
+];
 
 export const TOOL_LIBRARIES: ToolLibrary[] = [
   {
@@ -155,6 +257,13 @@ export const TOOL_LIBRARIES: ToolLibrary[] = [
     description: 'Manage events and check availability',
     icon: '📅',
     tools: CALENDAR_TOOLS
+  },
+  {
+    id: 'webhook',
+    name: 'Webhook Tools',
+    description: 'Connect to external APIs via webhooks',
+    icon: '🔗',
+    tools: WEBHOOK_TOOLS
   }
 ];
 

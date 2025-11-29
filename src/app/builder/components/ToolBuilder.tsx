@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { ToolConfig, ToolParameter, PARAMETER_TYPES, createEmptyParameter } from '../types';
-import { ChevronRight, X, Plus } from 'lucide-react';
+import { ChevronRight, X, Plus, Link, Globe } from 'lucide-react';
 
 interface ToolBuilderProps {
   tool: ToolConfig;
@@ -153,6 +153,88 @@ export default function ToolBuilder({ tool, index, errors, onChange, onDelete }:
               </div>
             )}
           </div>
+
+          {/* Webhook Configuration - Only show for custom tools (not gmail_ or calendar_) */}
+          {!tool.name.startsWith('gmail_') && !tool.name.startsWith('calendar_') && (
+            <div className="pt-4 border-t border-white/5">
+              <div className="flex items-center gap-2 mb-4">
+                <Globe className="w-4 h-4 text-neon-purple" />
+                <label className="text-xs font-light text-white/60 uppercase tracking-wider">
+                  Webhook Configuration
+                </label>
+                <span className="text-[10px] px-2 py-0.5 bg-neon-purple/10 text-neon-purple rounded-full">
+                  Optional
+                </span>
+              </div>
+              
+              <div className="space-y-4 p-4 bg-white/[0.02] rounded-lg border border-white/5">
+                <p className="text-xs text-white/40 mb-4">
+                  Configure a webhook URL to make this tool call an external API when invoked.
+                </p>
+                
+                {/* Webhook URL */}
+                <div>
+                  <label className="block text-xs font-light text-white/40 mb-2">
+                    Webhook URL
+                  </label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
+                      <input
+                        type="url"
+                        value={tool.webhookUrl || ''}
+                        onChange={(e) => updateTool({ webhookUrl: e.target.value })}
+                        placeholder="https://api.example.com/webhook"
+                        className="w-full pl-10 pr-4 py-2.5 bg-black/40 border border-white/10 rounded-lg text-white text-sm placeholder-white/20 focus:outline-none focus:border-neon-purple/50 focus:bg-black/60 transition-all font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* HTTP Method */}
+                <div>
+                  <label className="block text-xs font-light text-white/40 mb-2">
+                    HTTP Method
+                  </label>
+                  <div className="flex gap-2">
+                    {(['GET', 'POST', 'PUT', 'DELETE'] as const).map((method) => (
+                      <button
+                        key={method}
+                        type="button"
+                        onClick={() => updateTool({ webhookMethod: method })}
+                        className={`px-4 py-2 text-xs font-mono rounded-lg border transition-all ${
+                          (tool.webhookMethod || 'POST') === method
+                            ? 'bg-neon-purple/20 border-neon-purple/50 text-neon-purple'
+                            : 'bg-black/40 border-white/10 text-white/40 hover:border-white/20 hover:text-white/60'
+                        }`}
+                      >
+                        {method}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Status indicator */}
+                {tool.webhookUrl && (
+                  <div className="flex items-center gap-2 pt-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                    <span className="text-xs text-green-400">
+                      Webhook configured - tool will call external API
+                    </span>
+                  </div>
+                )}
+                
+                {!tool.webhookUrl && (
+                  <div className="flex items-center gap-2 pt-2">
+                    <div className="w-2 h-2 bg-yellow-400/50 rounded-full" />
+                    <span className="text-xs text-white/40">
+                      No webhook - tool will return stub response
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -13,6 +13,10 @@ export interface ToolConfig {
   name: string;
   description: string;
   parameters: ToolParameter[];
+  // Webhook configuration for custom tools
+  webhookUrl?: string;
+  webhookMethod?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  webhookHeaders?: Record<string, string>;
 }
 
 export interface AgentConfig {

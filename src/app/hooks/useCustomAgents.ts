@@ -5,23 +5,29 @@ import { RealtimeAgent, tool } from '@openai/agents/realtime';
 import { getGmailAccessToken } from './useGmailAuth';
 
 // Type matching the builder's AgentConfig
+interface BuilderToolConfig {
+  id: string;
+  name: string;
+  description: string;
+  parameters: {
+    name: string;
+    type: 'string' | 'number' | 'boolean' | 'object' | 'array';
+    description: string;
+    required: boolean;
+  }[];
+  // Webhook configuration for custom tools
+  webhookUrl?: string;
+  webhookMethod?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  webhookHeaders?: Record<string, string>;
+}
+
 interface BuilderAgentConfig {
   id: string;
   name: string;
   voice: 'sage' | 'alloy' | 'echo' | 'fable' | 'onyx' | 'shimmer';
   handoffDescription: string;
   instructions: string;
-  tools: {
-    id: string;
-    name: string;
-    description: string;
-    parameters: {
-      name: string;
-      type: 'string' | 'number' | 'boolean' | 'object' | 'array';
-      description: string;
-      required: boolean;
-    }[];
-  }[];
+  tools: BuilderToolConfig[];
   handoffs: string[];
   createdAt: string;
   updatedAt: string;
@@ -116,10 +122,20 @@ function convertToRealtimeAgent(config: BuilderAgentConfig): RealtimeAgent {
           return executeGmailTool(toolConfig.name, input);
         }
 
-        // Return a stub response - in a real implementation, you'd want custom logic
+        // Calendar Integration Logic
+        if (toolConfig.name.startsWith('calendar_')) {
+          return executeCalendarTool(toolConfig.name, input);
+        }
+
+        // Webhook Tool Logic - if tool has a webhook URL configured
+        if (toolConfig.webhookUrl) {
+          return executeWebhookTool(toolConfig, input);
+        }
+
+        // Return a stub response for tools without implementation
         return { 
           success: true, 
-          message: `Tool ${toolConfig.name} executed successfully`,
+          message: `Tool ${toolConfig.name} executed successfully (no webhook configured)`,
           input 
         };
       },
@@ -193,6 +209,104 @@ async function executeGmailTool(toolName: string, args: any): Promise<any> {
   } catch (error) {
     console.error('[Gmail API] Error:', error);
     return { error: error instanceof Error ? error.message : 'Failed to call Gmail API' };
+  }
+}
+
+/**
+ * Execute Calendar tools using the Google Calendar API via our proxy
+ */
+async function executeCalendarTool(toolName: string, args: any): Promise<any> {
+  const accessToken = getGmailAccessToken(); // Same Google OAuth token
+
+  if (!accessToken) {
+    return { 
+      error: 'Google account not connected. Please connect your Google account in the Agent Builder settings.',
+      requiresAuth: true
+    };
+  }
+
+  console.log(`[Calendar API] Executing ${toolName}`, args);
+
+  // Map tool names to API actions
+  const actionMap: Record<string, string> = {
+    'calendar_list_events': 'list_events',
+    'calendar_create_event': 'create_event',
+    'calendar_get_event': 'get_event',
+    'calendar_delete_event': 'delete_event',
+    'calendar_update_event': 'update_event',
+  };
+
+  const action = actionMap[toolName];
+  if (!action) {
+    return { error: `Unknown Calendar tool: ${toolName}` };
+  }
+
+  try {
+    const response = await fetch('/api/calendar/proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action,
+        accessToken,
+        params: args,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      // If unauthorized, token might be expired
+      if (response.status === 401) {
+        return { 
+          error: 'Google session expired. Please reconnect your Google account.',
+          requiresAuth: true
+        };
+      }
+      return { error: result.error || 'Calendar API error' };
+    }
+
+    return result;
+  } catch (error) {
+    console.error('[Calendar API] Error:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to call Calendar API' };
+  }
+}
+
+/**
+ * Execute custom tools via webhook
+ */
+async function executeWebhookTool(toolConfig: BuilderToolConfig, args: any): Promise<any> {
+  if (!toolConfig.webhookUrl) {
+    return { error: 'No webhook URL configured for this tool' };
+  }
+
+  console.log(`[Webhook] Executing ${toolConfig.name} via ${toolConfig.webhookUrl}`, args);
+
+  try {
+    const response = await fetch('/api/webhook/proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        webhookUrl: toolConfig.webhookUrl,
+        method: toolConfig.webhookMethod || 'POST',
+        headers: toolConfig.webhookHeaders || {},
+        params: args,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      return { 
+        error: result.error || `Webhook failed with status ${response.status}`,
+        details: result
+      };
+    }
+
+    return result.data || result;
+  } catch (error) {
+    console.error('[Webhook] Error:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to call webhook' };
   }
 }
 

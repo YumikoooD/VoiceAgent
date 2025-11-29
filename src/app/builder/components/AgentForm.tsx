@@ -370,13 +370,15 @@ function ToolsTab({ tools, errors, onAdd, onBulkAdd, onUpdate, onDelete }: Tools
   const [showLibrary, setShowLibrary] = useState(false);
   const { isConnected, email, isLoading, error, connect, disconnect } = useGmailAuth();
 
-  // Check if agent has Gmail tools
+  // Check if agent has Gmail or Calendar tools (both require Google OAuth)
   const hasGmailTools = tools.some(t => t.name.startsWith('gmail_'));
+  const hasCalendarTools = tools.some(t => t.name.startsWith('calendar_'));
+  const hasGoogleTools = hasGmailTools || hasCalendarTools;
 
   return (
     <div className="space-y-6">
-      {/* Gmail Connection Status - Show if agent has Gmail tools */}
-      {hasGmailTools && (
+      {/* Google Connection Status - Show if agent has Gmail or Calendar tools */}
+      {hasGoogleTools && (
         <div className={`p-4 rounded-xl border ${
           isConnected 
             ? 'bg-green-500/10 border-green-500/20' 
@@ -391,7 +393,7 @@ function ToolsTab({ tools, errors, onAdd, onBulkAdd, onUpdate, onDelete }: Tools
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-white">Gmail Integration</span>
+                  <span className="text-sm font-medium text-white">Google Integration</span>
                   {isConnected && (
                     <CheckCircle className="w-4 h-4 text-green-400" />
                   )}
@@ -400,7 +402,7 @@ function ToolsTab({ tools, errors, onAdd, onBulkAdd, onUpdate, onDelete }: Tools
                   <p className="text-xs text-white/60">Connected as {email}</p>
                 ) : (
                   <p className="text-xs text-orange-400">
-                    {error || 'Connect your Gmail to enable email tools'}
+                    {error || 'Connect your Google account to enable Gmail & Calendar tools'}
                   </p>
                 )}
               </div>
@@ -422,7 +424,7 @@ function ToolsTab({ tools, errors, onAdd, onBulkAdd, onUpdate, onDelete }: Tools
                 className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg text-sm font-medium hover:bg-white/90 transition-colors"
               >
                 <Mail className="w-4 h-4" />
-                Connect Gmail
+                Connect Google
               </button>
             )}
           </div>
