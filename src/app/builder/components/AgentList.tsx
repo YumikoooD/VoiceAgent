@@ -2,6 +2,20 @@
 
 import React from 'react';
 import { AgentConfig, VOICE_OPTIONS } from '../types';
+import { motion } from 'framer-motion';
+import { 
+  Edit2, 
+  Trash2, 
+  Mic, 
+  Wrench, 
+  GitCompare, 
+  Plus,
+  Clock,
+  ArrowLeft,
+  Copy,
+  Lock,
+  Sparkles
+} from 'lucide-react';
 
 interface AgentListProps {
   agents: AgentConfig[];
@@ -14,34 +28,55 @@ interface AgentListProps {
 export default function AgentList({ agents, onEdit, onDelete, onPreview, onCreateNew }: AgentListProps) {
   if (agents.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <div className="text-6xl mb-6">🤖</div>
-        <h2 className="text-2xl font-bold text-white mb-2">No Agents Yet</h2>
-        <p className="text-slate-400 mb-6 text-center max-w-md">
-          Create your first voice agent to get started. Define its personality, tools, and capabilities.
+      <div className="flex flex-col items-center justify-center py-32 text-center">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center mb-6 border border-white/5 relative"
+        >
+          <div className="absolute inset-0 bg-neon-cyan/10 blur-xl rounded-full" />
+          <Mic className="w-10 h-10 text-white/20" />
+        </motion.div>
+        
+        <h2 className="text-2xl font-light text-white mb-2 tracking-tight">No Agents Created</h2>
+        <p className="text-white/40 mb-8 max-w-sm leading-relaxed">
+          Get started by building your first custom voice agent. Define its personality, voice, and capabilities.
         </p>
+        
         <button
           onClick={onCreateNew}
-          className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-colors"
+          className="group px-8 py-3 bg-white text-black rounded-full font-medium hover:bg-white/90 transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:scale-105 flex items-center gap-2"
         >
-          Create Your First Agent
+          <Plus className="w-4 h-4" />
+          Create First Agent
         </button>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-white">Your Agents</h2>
-        <p className="text-slate-400">Manage and configure your voice agents</p>
-      </div>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Create New Card */}
+        <motion.button
+          onClick={onCreateNew}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="group relative flex flex-col items-center justify-center p-8 rounded-3xl border border-dashed border-white/10 hover:border-white/30 hover:bg-white/5 transition-all duration-300 min-h-[320px]"
+        >
+          <div className="w-16 h-16 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center mb-4 transition-colors">
+            <Plus className="w-8 h-8 text-white/40 group-hover:text-white/80 transition-colors" />
+          </div>
+          <span className="text-white/60 font-medium group-hover:text-white transition-colors">Create New Agent</span>
+        </motion.button>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {agents.map(agent => (
+        {/* Agent Cards */}
+        {agents.map((agent, index) => (
           <AgentCard
             key={agent.id}
             agent={agent}
+            index={index}
             onEdit={() => onEdit(agent)}
             onDelete={() => onDelete(agent.id)}
             onPreview={() => onPreview(agent)}
@@ -54,87 +89,131 @@ export default function AgentList({ agents, onEdit, onDelete, onPreview, onCreat
 
 interface AgentCardProps {
   agent: AgentConfig;
+  index: number;
   onEdit: () => void;
   onDelete: () => void;
   onPreview: () => void;
 }
 
-function AgentCard({ agent, onEdit, onDelete, onPreview }: AgentCardProps) {
+function AgentCard({ agent, index, onEdit, onDelete, onPreview }: AgentCardProps) {
   const voiceInfo = VOICE_OPTIONS.find(v => v.value === agent.voice);
-  const toolCount = agent.tools.length;
-  const handoffCount = agent.handoffs.length;
+  
+  // Extract summary from handoffDescription or instructions
+  const summary = agent.handoffDescription 
+    ? agent.handoffDescription 
+    : agent.instructions 
+      ? agent.instructions.split('\n').find(line => line.trim().length > 0 && !line.startsWith('#')) || "No description available."
+      : "No description available.";
 
   return (
-    <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5 hover:border-slate-600 transition-colors">
-      <div className="flex items-start justify-between mb-3">
-        <div>
-          <h3 className="text-lg font-semibold text-white">{agent.name || 'Untitled Agent'}</h3>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs px-2 py-0.5 bg-slate-700 text-slate-300 rounded-full">
-              {voiceInfo?.label || agent.voice}
-            </span>
-            {toolCount > 0 && (
-              <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded-full">
-                {toolCount} tool{toolCount !== 1 ? 's' : ''}
-              </span>
-            )}
-            {handoffCount > 0 && (
-              <span className="text-xs px-2 py-0.5 bg-purple-900/50 text-purple-300 rounded-full">
-                {handoffCount} handoff{handoffCount !== 1 ? 's' : ''}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {agent.handoffDescription && (
-        <p className="text-slate-400 text-sm mb-4 line-clamp-2">
-          {agent.handoffDescription}
-        </p>
-      )}
-
-      {agent.instructions && (
-        <p className="text-slate-500 text-xs mb-4 line-clamp-2 font-mono bg-slate-900/50 p-2 rounded">
-          {agent.instructions.slice(0, 150)}...
-        </p>
-      )}
-
-      <div className="flex items-center justify-between pt-3 border-t border-slate-700">
-        <span className="text-xs text-slate-500">
-          Updated {new Date(agent.updatedAt).toLocaleDateString()}
-        </span>
-        <div className="flex items-center gap-2">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
+      className="group bg-[#0a0a0a] hover:bg-[#0f0f0f] border border-white/5 rounded-3xl p-6 transition-all duration-300 hover:shadow-2xl hover:border-white/10 hover:-translate-y-1 min-h-[320px] flex flex-col relative overflow-hidden"
+    >
+      {/* Top Actions (Absolute) */}
+      <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 z-10">
+         <button
+          onClick={(e) => { e.stopPropagation(); onEdit(); }}
+          className="p-2 rounded-full bg-black/50 backdrop-blur-md hover:bg-white/20 text-white/60 hover:text-white transition-colors border border-white/10"
+          title={agent.isReadOnly ? "Clone & Edit" : "Edit"}
+        >
+          {agent.isReadOnly ? <Copy className="w-3.5 h-3.5" /> : <Edit2 className="w-3.5 h-3.5" />}
+        </button>
+        {!agent.isReadOnly && (
           <button
-            onClick={onPreview}
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
-            title="Preview"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-          </button>
-          <button
-            onClick={onEdit}
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
-            title="Edit"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-          </button>
-          <button
-            onClick={onDelete}
-            className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded-lg transition-colors"
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            className="p-2 rounded-full bg-black/50 backdrop-blur-md hover:bg-white/20 text-white/60 hover:text-red-400 transition-colors border border-white/10"
             title="Delete"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
+            <Trash2 className="w-3.5 h-3.5" />
           </button>
+        )}
+      </div>
+
+      {/* Identity Section */}
+      <div className="mb-6 relative">
+        <div className="flex items-center gap-4 mb-4">
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border shadow-lg ${
+            agent.isReadOnly 
+              ? 'bg-gradient-to-br from-purple-500/20 to-blue-500/20 border-purple-500/20 text-purple-200' 
+              : 'bg-gradient-to-br from-white/10 to-white/5 border-white/10 text-white'
+          }`}>
+             <span className="text-xl font-light">
+               {agent.name.charAt(0).toUpperCase()}
+             </span>
+          </div>
+          <div>
+            <h3 className="text-lg font-medium text-white tracking-tight flex items-center gap-2">
+              {agent.name}
+              {agent.isReadOnly && (
+                <Lock className="w-3 h-3 text-white/20" />
+              )}
+            </h3>
+            <div className="flex items-center gap-3 text-xs text-white/40 mt-1">
+              <span className="flex items-center gap-1">
+                <Mic className="w-3 h-3" />
+                {voiceInfo?.label || agent.voice}
+              </span>
+              <span className="w-1 h-1 rounded-full bg-white/20" />
+              <span className="flex items-center gap-1">
+                <GitCompare className="w-3 h-3" />
+                {agent.handoffs.length} Handoffs
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <p className="text-sm text-white/60 leading-relaxed line-clamp-3 min-h-[4.5em]">
+          {summary}
+        </p>
+      </div>
+
+      {/* Capabilities (Tools) */}
+      <div className="flex-1 mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <Wrench className="w-3.5 h-3.5 text-neon-cyan/80" />
+          <span className="text-xs font-medium text-white/40 uppercase tracking-wider">Capabilities</span>
+        </div>
+        <div className="flex flex-wrap gap-2 content-start h-[80px] overflow-hidden mask-image-fade-bottom">
+          {agent.tools.length > 0 ? (
+            agent.tools.slice(0, 6).map((tool) => (
+              <span 
+                key={tool.id} 
+                className="px-2.5 py-1 rounded-md bg-white/5 border border-white/5 text-[10px] text-white/70 font-mono hover:bg-white/10 transition-colors"
+              >
+                {tool.name}
+              </span>
+            ))
+          ) : (
+            <span className="text-xs text-white/20 italic px-1">No tools configured</span>
+          )}
+          {agent.tools.length > 6 && (
+            <span className="px-2 py-1 rounded-md text-[10px] text-white/40">
+              +{agent.tools.length - 6} more
+            </span>
+          )}
         </div>
       </div>
-    </div>
+
+      {/* Footer */}
+      <div className="mt-auto flex items-center justify-between pt-4 border-t border-white/5">
+         <div className="flex items-center gap-1.5 text-[10px] text-white/20 font-mono uppercase tracking-widest">
+            <Clock className="w-3 h-3" />
+            {new Date(agent.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+         </div>
+         
+         <button
+          onClick={onPreview}
+          className="pl-3 pr-2 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-white text-xs font-medium transition-colors flex items-center gap-2 group/btn border border-white/5 hover:border-white/20"
+        >
+          Details
+          <div className="w-5 h-5 rounded-full bg-white text-black flex items-center justify-center group-hover/btn:scale-110 transition-transform">
+            <ArrowLeft className="w-3 h-3 rotate-180" />
+          </div>
+        </button>
+      </div>
+    </motion.div>
   );
 }
-

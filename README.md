@@ -11,12 +11,25 @@ I built this platform to explore and demonstrate sophisticated voice agent archi
 ## Features
 
 - 🎙️ **Real-time Voice Interaction** - Low-latency voice conversations using WebRTC
+- 🌊 **Live Voice Visualization** - Real-time audio waveform and frequency visualization
 - 🤖 **Multi-Agent Orchestration** - Seamless handoffs between specialized agents
 - 🛡️ **Output Guardrails** - Built-in content moderation and safety checks
 - 🎛️ **Flexible Agent Patterns** - Multiple architectural patterns for different use cases
 - 📊 **Comprehensive Logging** - Full event tracking and conversation history
 - 🎚️ **Audio Controls** - Push-to-talk, codec selection, and audio recording
 - 🛠️ **Visual Agent Builder** - Create and configure agents without writing code
+
+## Voice Visualization
+
+The platform features real-time audio visualization that provides visual feedback during voice conversations. The visualizer uses the Web Audio API to analyze microphone input and display dynamic waveforms and frequency data.
+
+### Visualization Modes
+
+- **Bars Mode** (Default) - Frequency spectrum displayed as animated bars with cyberpunk-themed gradients
+- **Waveform Mode** - Time-domain audio waveform with volume-based intensity
+- **Circular Mode** - Radial frequency visualization with pulsing center
+
+The visualizer automatically activates when connected to a voice session and provides real-time feedback with smooth animations and glow effects that match the platform's modern UI design.
 
 ## Agent Builder
 
@@ -296,6 +309,13 @@ The platform includes built-in output guardrails for content moderation. Guardra
 
 ## UI Features
 
+### Voice Visualization
+- Real-time audio visualization displayed prominently during conversations
+- Animated frequency bars with gradient colors
+- Volume-based intensity and glow effects
+- Microphone status indicator
+- Multiple visualization styles available
+
 ### Transcript View
 - Left panel shows conversation history
 - Displays messages, tool calls, and agent changes
@@ -321,9 +341,10 @@ The platform includes built-in output guardrails for content moderation. Guardra
 
 - **Framework:** Next.js 15
 - **Language:** TypeScript
-- **UI:** React 19, Tailwind CSS
+- **UI:** React 19, Tailwind CSS, Framer Motion
 - **AI SDK:** OpenAI Agents SDK
-- **Audio:** WebRTC (via OpenAI Realtime API)
+- **Audio:** WebRTC (via OpenAI Realtime API), Web Audio API
+- **Icons:** Lucide React
 - **Models:** GPT-4o Realtime, GPT-4.1, o4-mini
 
 ### Scripts
@@ -413,12 +434,15 @@ For complex flows (like authentication), you can prompt agents to follow state m
 ## Future Improvements
 
 Planned enhancements:
+- [x] Real-time voice visualization
 - [ ] Support for additional voice models
 - [ ] Enhanced guardrail customization
 - [ ] Agent performance analytics
 - [ ] Multi-language support
 - [ ] Custom voice cloning
 - [ ] Advanced tool orchestration patterns
+- [ ] 3D avatar integration
+- [ ] Emotion detection and visualization
 
 ## License
 

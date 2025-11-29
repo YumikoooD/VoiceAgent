@@ -25,6 +25,7 @@ export interface AgentConfig {
   handoffs: string[]; // Agent IDs
   createdAt: string;
   updatedAt: string;
+  isReadOnly?: boolean;
 }
 
 export type VoiceOption = 'sage' | 'alloy' | 'echo' | 'fable' | 'onyx' | 'shimmer';

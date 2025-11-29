@@ -1,7 +1,7 @@
 // Utility to convert builder AgentConfig to SDK RealtimeAgent
 
 import { RealtimeAgent, tool } from '@openai/agents/realtime';
-import { AgentConfig } from '../types';
+import { AgentConfig, ToolConfig, ToolParameter, VoiceOption } from '../types';
 
 /**
  * Converts an AgentConfig from the builder to a RealtimeAgent for the SDK.
@@ -48,6 +48,59 @@ export function convertToRealtimeAgent(config: AgentConfig): RealtimeAgent {
     tools,
     handoffs: [], // Handoffs need to be resolved separately
   });
+}
+
+/**
+ * Converts a RealtimeAgent (SDK) back to an AgentConfig (Builder).
+ */
+export function convertFromRealtimeAgent(agent: RealtimeAgent, isReadOnly: boolean = false): AgentConfig {
+  const tools: ToolConfig[] = [];
+
+  // Access internal tools map/array if available, or iterate known tools
+  // Note: This depends on how RealtimeAgent exposes tools. 
+  // Assuming agent.tools is an object or map of definitions.
+  // If it's not directly exposed, we might only be able to show basic info.
+  
+  if (agent.tools) {
+    Object.entries(agent.tools).forEach(([name, definition]: [string, any]) => {
+        // Skip internal tools if any
+        if (name.startsWith('__')) return;
+
+        const params: ToolParameter[] = [];
+        const schema = definition.parameters;
+
+        if (schema && schema.properties) {
+            Object.entries(schema.properties).forEach(([paramName, paramDef]: [string, any]) => {
+                params.push({
+                    name: paramName,
+                    type: paramDef.type || 'string',
+                    description: paramDef.description || '',
+                    required: schema.required?.includes(paramName) || false
+                });
+            });
+        }
+
+        tools.push({
+            id: crypto.randomUUID(), // Generate a temp ID
+            name: definition.name || name,
+            description: definition.description || '',
+            parameters: params
+        });
+    });
+  }
+
+  return {
+    id: agent.name || crypto.randomUUID(), // Use name as ID if stable, or generate one
+    name: agent.name || 'Unnamed Agent',
+    voice: (agent.voice || 'sage') as VoiceOption,
+    handoffDescription: agent.handoffDescription || '',
+    instructions: agent.instructions || '',
+    tools,
+    handoffs: [], // Mapping handoffs back is complex without IDs, leaving empty for now
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    isReadOnly
+  };
 }
 
 /**
@@ -133,4 +186,3 @@ export const ${config.name}Scenario = [${config.name}Agent];
 export default ${config.name}Scenario;
 `;
 }
-

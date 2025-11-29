@@ -6,12 +6,13 @@ import { v4 as uuidv4 } from "uuid";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageSquare, Terminal, Activity } from "lucide-react";
+import { MessageSquare, Terminal, Activity, Settings, Mic } from "lucide-react";
 
 // UI components
 import Transcript from "./components/Transcript";
 import Events from "./components/Events";
 import BottomToolbar from "./components/BottomToolbar";
+import VoiceVisualizer from "./components/VoiceVisualizer";
 
 // Types
 import { SessionStatus } from "@/app/types";
@@ -41,6 +42,7 @@ const sdkScenarioMap: Record<string, RealtimeAgent[]> = {
 import useAudioDownload from "./hooks/useAudioDownload";
 import { useHandleSessionHistory } from "./hooks/useHandleSessionHistory";
 import { useCustomAgents } from "./hooks/useCustomAgents";
+import { useVoiceVisualization } from "./hooks/useVoiceVisualization";
 
 function App() {
   const searchParams = useSearchParams()!;
@@ -100,7 +102,7 @@ function App() {
   });
 
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>("DISCONNECTED");
-  const [isEventsPaneExpanded, setIsEventsPaneExpanded] = useState<boolean>(true);
+  const [isEventsPaneExpanded, setIsEventsPaneExpanded] = useState<boolean>(false);
   const [userText, setUserText] = useState<string>("");
   const [isPTTActive, setIsPTTActive] = useState<boolean>(false);
   const [isPTTUserSpeaking, setIsPTTUserSpeaking] = useState<boolean>(false);
@@ -111,6 +113,10 @@ function App() {
   });
 
   const { startRecording, stopRecording, downloadRecording } = useAudioDownload();
+  
+  // Voice visualization
+  const isVisualizationActive = sessionStatus === "CONNECTED";
+  const visualizationData = useVoiceVisualization(isVisualizationActive);
 
   useHandleSessionHistory();
 
@@ -343,80 +349,95 @@ function App() {
   const agentSetKey = searchParams.get("agentConfig") || "default";
 
   return (
-    <div className="flex flex-col h-screen w-full bg-gradient-to-br from-cyber-900 via-cyber-800 to-cyber-900 text-white overflow-hidden font-sans selection:bg-neon-cyan/30">
+    <div className="flex flex-col h-screen w-full bg-black text-white overflow-hidden font-sans selection:bg-neon-cyan/30">
       
-      {/* Floating Header */}
-      <div className="absolute top-6 left-0 right-0 px-6 z-20 flex justify-center pointer-events-none">
-        <motion.div 
-          initial={{ y: -50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="flex items-center gap-6 p-2 pl-6 pr-2 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-full shadow-2xl pointer-events-auto"
-        >
-          <div className="flex items-center gap-3">
-            <Image
-              src="/openai-logomark.svg"
-              alt="Logo"
-              width={24}
-              height={24}
-              className="opacity-80 hover:opacity-100 transition-opacity"
-            />
-            <span className="font-medium text-sm tracking-wide text-white/90">
-              Voice Agent <span className="text-white/40">Platform</span>
-            </span>
+      {/* Top Navigation Bar */}
+      <header className="fixed top-0 left-0 right-0 h-16 flex items-center justify-between px-6 z-50 bg-black/50 backdrop-blur-md border-b border-white/5">
+        <div className="flex items-center gap-4">
+          <Image
+            src="/openai-logomark.svg"
+            alt="Logo"
+            width={24}
+            height={24}
+            className="opacity-80"
+          />
+          <h1 className="text-sm font-medium tracking-wider uppercase text-white/80">Voice Agent</h1>
+        </div>
+
+        {/* Agent Controls */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 bg-white/5 rounded-full px-4 py-1.5 border border-white/5">
+            <Settings className="w-4 h-4 text-cyber-500" />
+            <select
+              value={agentSetKey}
+              onChange={handleAgentChange}
+              className="bg-transparent text-sm text-white/80 font-medium appearance-none cursor-pointer outline-none pr-2 hover:text-white transition-colors"
+            >
+              {Object.keys(allAgentSets).map((key) => (
+                <option key={key} value={key} className="bg-cyber-900 text-white">{key}</option>
+              ))}
+              {Object.keys(customAgentSets).length > 0 && <option disabled>──────────</option>}
+              {Object.keys(customAgentSets).map((key) => (
+                <option key={key} value={key} className="bg-cyber-900 text-white">✨ {key.replace('custom_', '')}</option>
+              ))}
+            </select>
           </div>
 
-          <div className="w-px h-6 bg-white/10" />
-
-          <div className="flex items-center gap-3">
-            <div className="relative group">
-              <select
-                value={agentSetKey}
-                onChange={handleAgentChange}
-                className="bg-transparent text-sm text-white/80 font-medium appearance-none cursor-pointer outline-none pr-4 hover:text-white transition-colors"
-              >
-                {Object.keys(allAgentSets).map((key) => (
-                  <option key={key} value={key} className="bg-cyber-900 text-white">{key}</option>
-                ))}
-                {Object.keys(customAgentSets).length > 0 && <option disabled>──────────</option>}
-                {Object.keys(customAgentSets).map((key) => (
-                  <option key={key} value={key} className="bg-cyber-900 text-white">✨ {key.replace('custom_', '')}</option>
-                ))}
-              </select>
-            </div>
-
-            {agentSetKey && (
-              <div className="relative group">
+          {agentSetKey && (
+             <div className="flex items-center gap-2 bg-white/5 rounded-full px-4 py-1.5 border border-white/5">
+               <Mic className="w-4 h-4 text-cyber-500" />
                 <select
                   value={selectedAgentName}
                   onChange={handleSelectedAgentChange}
-                  className="bg-white/10 hover:bg-white/20 text-sm text-neon-cyan font-medium appearance-none cursor-pointer outline-none px-3 py-1 rounded-full transition-all"
+                  className="bg-transparent text-sm text-neon-cyan font-medium appearance-none cursor-pointer outline-none pr-2"
                 >
                   {selectedAgentConfigSet?.map((agent) => (
                     <option key={agent.name} value={agent.name} className="bg-cyber-900 text-white">{agent.name}</option>
                   ))}
                 </select>
-              </div>
+             </div>
             )}
-          </div>
+        </div>
 
-          <Link
+        <div className="flex items-center gap-4">
+           <Link
             href="/builder"
-            className="ml-2 px-4 py-1.5 bg-neon-purple/20 hover:bg-neon-purple/30 text-neon-purple text-xs font-medium rounded-full transition-all border border-neon-purple/20 hover:border-neon-purple/40"
+            className="px-4 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-full transition-all"
           >
-            Open Builder
+            Agent Builder
           </Link>
-        </motion.div>
-      </div>
+        </div>
+      </header>
 
-      {/* Main Content Area */}
-      <div className="flex flex-1 relative z-10 p-4 pt-24 gap-4 max-w-7xl mx-auto w-full h-full">
+      {/* Main Split View */}
+      <main className="flex-1 pt-16 flex relative overflow-hidden">
         
-        {/* Left Panel: Transcript */}
-        <motion.div 
-          initial={{ x: -20, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          className="flex flex-1 min-w-0 h-full"
-        >
+        {/* Left: Visualizer & Hero Area (40%) */}
+        <div className="w-[40%] relative flex flex-col items-center justify-center border-r border-white/5 bg-gradient-to-b from-black to-cyber-900/20">
+           <div className="absolute inset-0 w-full h-full opacity-30">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-neon-purple/10 rounded-full blur-[100px]" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-neon-cyan/10 rounded-full blur-[80px]" />
+           </div>
+           
+           <div className="relative z-10 w-full h-[400px]">
+             <VoiceVisualizer 
+                visualizationData={visualizationData}
+                isActive={isVisualizationActive}
+              />
+           </div>
+
+           <div className="mt-8 text-center">
+             <h2 className="text-2xl font-light text-white/90 tracking-tight">
+               {sessionStatus === 'CONNECTED' ? 'Agent Active' : 'Ready to Connect'}
+             </h2>
+             <p className="text-white/40 text-sm mt-2 font-mono uppercase tracking-widest">
+               {selectedAgentName}
+             </p>
+           </div>
+        </div>
+
+        {/* Right: Transcript (60%) */}
+        <div className="flex-1 flex flex-col relative bg-black/40 backdrop-blur-sm">
           <Transcript
             userText={userText}
             setUserText={setUserText}
@@ -424,16 +445,19 @@ function App() {
             canSend={sessionStatus === "CONNECTED"}
             downloadRecording={downloadRecording}
           />
-        </motion.div>
+        </div>
 
-        {/* Right Panel: Events (Collapsible) */}
-        <AnimatePresence>
-          {isEventsPaneExpanded && (
-            <Events isExpanded={isEventsPaneExpanded} />
-          )}
-        </AnimatePresence>
+      </main>
 
-      </div>
+      {/* Overlay: Events Drawer */}
+      <AnimatePresence>
+        {isEventsPaneExpanded && (
+          <Events 
+            isExpanded={isEventsPaneExpanded} 
+            onClose={() => setIsEventsPaneExpanded(false)} 
+          />
+        )}
+      </AnimatePresence>
 
       {/* Bottom Toolbar */}
       <BottomToolbar
@@ -451,12 +475,6 @@ function App() {
         codec={urlCodec}
         onCodecChange={handleCodecChange}
       />
-
-      {/* Background Elements */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-neon-purple/5 blur-[120px] animate-pulse-slow" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-neon-cyan/5 blur-[120px] animate-pulse-slow delay-1000" />
-      </div>
     </div>
   );
 }

@@ -2,6 +2,22 @@
 
 import React, { useState } from 'react';
 import { AgentConfig, VOICE_OPTIONS } from '../types';
+import { motion } from 'framer-motion';
+import { 
+  ArrowLeft, 
+  Download, 
+  Code, 
+  FileJson, 
+  Check, 
+  Copy, 
+  Pencil, 
+  Mic, 
+  Wrench, 
+  GitCompare, 
+  Play
+} from 'lucide-react';
+import { useVoiceVisualization } from '../../hooks/useVoiceVisualization';
+import VoiceVisualizer from '../../components/VoiceVisualizer';
 
 interface PreviewPanelProps {
   agent: AgentConfig;
@@ -12,7 +28,15 @@ interface PreviewPanelProps {
 
 export default function PreviewPanel({ agent, onClose, onEdit, onExport }: PreviewPanelProps) {
   const [showJson, setShowJson] = useState(false);
+  const [copied, setCopied] = useState(false);
   const voiceInfo = VOICE_OPTIONS.find(v => v.value === agent.voice);
+
+  // Fake visualizer state for preview
+  const visualizationData = {
+    frequencyData: new Uint8Array([100, 150, 200, 180, 120, 80]),
+    timeDomainData: new Uint8Array(128),
+    volume: 0.5
+  };
 
   // Generate the TypeScript code for this agent
   const generateCode = () => {
@@ -74,154 +98,178 @@ export default ${agent.name}Scenario;
   const jsonPreview = JSON.stringify(agent, null, 2);
   const codePreview = generateCode();
 
+  const handleCopy = () => {
+    navigator.clipboard.writeText(showJson ? jsonPreview : codePreview);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Determine launch URL
+  const launchKey = agent.id.startsWith('builtin_') 
+    ? agent.id.replace('builtin_', '') 
+    : `custom_${agent.name}`;
+  const launchUrl = `/chat?agentConfig=${encodeURIComponent(launchKey)}`;
+
   return (
-    <div className="bg-slate-800/30 border border-slate-700 rounded-xl">
+    <div className="flex flex-col bg-black">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-slate-700 flex items-center justify-between">
+      <div className="px-8 py-6 border-b border-white/5 flex items-center justify-between bg-black/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="flex items-center gap-4">
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white transition-colors"
+            className="p-2 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors group"
           >
-            ← Back
+            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
           </button>
-          <h2 className="text-xl font-semibold text-white">
-            Preview: {agent.name}
-          </h2>
+          <div>
+            <h2 className="text-xl font-light text-white flex items-center gap-3">
+              {agent.name}
+              <span className="px-2 py-0.5 rounded-full bg-white/10 text-white/60 text-xs font-mono">
+                Preview
+              </span>
+            </h2>
+          </div>
         </div>
         <div className="flex items-center gap-3">
+          <a
+            href={launchUrl}
+            className="px-6 py-2 bg-neon-cyan hover:bg-cyan-400 text-black rounded-full text-sm font-bold transition-colors flex items-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] hover:scale-105 transform duration-200"
+          >
+            <Play className="w-4 h-4 fill-current" />
+            Try Agent
+          </a>
+          <div className="w-px h-6 bg-white/10 mx-2" />
           <button
             onClick={onExport}
-            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+            className="p-2 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+            title="Export JSON"
           >
-            Export JSON
+            <Download className="w-5 h-5" />
           </button>
           <button
             onClick={onEdit}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-colors"
+            className="p-2 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+            title={agent.isReadOnly ? "Clone & Edit" : "Edit"}
           >
-            Edit Agent
+            {agent.isReadOnly ? <Copy className="w-5 h-5" /> : <Pencil className="w-5 h-5" />}
           </button>
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-6 space-y-6">
-        {/* Agent Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-slate-900/50 rounded-lg p-4">
-            <h3 className="text-sm text-slate-400 mb-1">Voice</h3>
-            <p className="text-white font-medium">{voiceInfo?.label}</p>
-            <p className="text-sm text-slate-400">{voiceInfo?.description}</p>
-          </div>
-          <div className="bg-slate-900/50 rounded-lg p-4">
-            <h3 className="text-sm text-slate-400 mb-1">Tools</h3>
-            <p className="text-white font-medium">{agent.tools.length} defined</p>
-            {agent.tools.length > 0 && (
-              <p className="text-sm text-slate-400">
-                {agent.tools.map(t => t.name).join(', ')}
-              </p>
-            )}
-          </div>
-          <div className="bg-slate-900/50 rounded-lg p-4">
-            <h3 className="text-sm text-slate-400 mb-1">Handoffs</h3>
-            <p className="text-white font-medium">{agent.handoffs.length} configured</p>
-          </div>
-        </div>
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-5xl mx-auto p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+          
+          {/* Left Column: Visualizer & Stats */}
+          <div className="space-y-6">
+            {/* Hero Card */}
+            <div className="bg-white/5 rounded-3xl border border-white/5 overflow-hidden relative h-[300px] flex flex-col items-center justify-center">
+               <div className="absolute inset-0 opacity-20">
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-neon-purple/30 rounded-full blur-[80px]" />
+               </div>
+               
+               {/* Live Visualizer Preview */}
+               <div className="relative z-10 w-full h-full flex items-center justify-center scale-125">
+                 <VoiceVisualizer 
+                    visualizationData={visualizationData}
+                    isActive={true}
+                  />
+               </div>
 
-        {/* Handoff Description */}
-        {agent.handoffDescription && (
-          <div>
-            <h3 className="text-sm font-medium text-slate-300 mb-2">Handoff Description</h3>
-            <p className="text-slate-400 bg-slate-900/50 rounded-lg p-4">
-              {agent.handoffDescription}
-            </p>
-          </div>
-        )}
-
-        {/* Instructions Preview */}
-        <div>
-          <h3 className="text-sm font-medium text-slate-300 mb-2">Instructions</h3>
-          <pre className="text-sm text-slate-300 bg-slate-900/50 rounded-lg p-4 overflow-x-auto whitespace-pre-wrap max-h-64 overflow-y-auto">
-            {agent.instructions || 'No instructions defined'}
-          </pre>
-        </div>
-
-        {/* Tools Preview */}
-        {agent.tools.length > 0 && (
-          <div>
-            <h3 className="text-sm font-medium text-slate-300 mb-2">Tools</h3>
-            <div className="space-y-3">
-              {agent.tools.map(tool => (
-                <div key={tool.id} className="bg-slate-900/50 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-white font-medium">{tool.name}</h4>
-                    {tool.parameters.length > 0 && (
-                      <span className="text-xs px-2 py-0.5 bg-slate-700 text-slate-300 rounded-full">
-                        {tool.parameters.length} params
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-slate-400 mb-3">{tool.description}</p>
-                  {tool.parameters.length > 0 && (
-                    <div className="text-xs font-mono bg-slate-800/50 rounded p-2">
-                      {tool.parameters.map(p => (
-                        <div key={p.name} className="flex items-center gap-2">
-                          <span className="text-emerald-400">{p.name}</span>
-                          <span className="text-slate-500">:</span>
-                          <span className="text-blue-400">{p.type}</span>
-                          {p.required && <span className="text-red-400 text-[10px]">required</span>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
+               <div className="absolute bottom-6 left-0 right-0 text-center z-20">
+                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/50 backdrop-blur-md border border-white/10 text-xs text-white/80">
+                   <Mic className="w-3 h-3 text-neon-cyan" />
+                   {voiceInfo?.label || agent.voice}
+                 </div>
+               </div>
             </div>
-          </div>
-        )}
 
-        {/* Code/JSON Toggle */}
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <button
-              onClick={() => setShowJson(false)}
-              className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                !showJson
-                  ? 'bg-emerald-500/20 text-emerald-300'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              TypeScript Code
-            </button>
-            <button
-              onClick={() => setShowJson(true)}
-              className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                showJson
-                  ? 'bg-emerald-500/20 text-emerald-300'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              JSON
-            </button>
+            {/* Stats Grid */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center mb-3">
+                  <Mic className="w-4 h-4 text-white" />
+                </div>
+                <p className="text-xs text-white/40 uppercase tracking-wider">Voice</p>
+                <p className="text-sm font-medium text-white mt-1">{voiceInfo?.label}</p>
+              </div>
+              <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center mb-3">
+                  <Wrench className="w-4 h-4 text-white" />
+                </div>
+                <p className="text-xs text-white/40 uppercase tracking-wider">Tools</p>
+                <p className="text-sm font-medium text-white mt-1">{agent.tools.length} Active</p>
+              </div>
+              <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center mb-3">
+                  <GitCompare className="w-4 h-4 text-white" />
+                </div>
+                <p className="text-xs text-white/40 uppercase tracking-wider">Handoffs</p>
+                <p className="text-sm font-medium text-white mt-1">{agent.handoffs.length} Connected</p>
+              </div>
+            </div>
+
+            {/* Handoff Description */}
+             <div className="bg-white/5 rounded-2xl p-6 border border-white/5">
+                <h3 className="text-sm font-medium text-white mb-2">Handoff Behavior</h3>
+                <p className="text-sm text-white/60 leading-relaxed">
+                  {agent.handoffDescription || "No handoff description provided."}
+                </p>
+             </div>
           </div>
 
-          <div className="relative">
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(showJson ? jsonPreview : codePreview);
-              }}
-              className="absolute top-3 right-3 px-2 py-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs rounded transition-colors"
-            >
-              Copy
-            </button>
-            <pre className="text-xs text-slate-300 bg-slate-900 rounded-lg p-4 overflow-x-auto max-h-96 overflow-y-auto font-mono">
-              {showJson ? jsonPreview : codePreview}
-            </pre>
+          {/* Right Column: Details & Code */}
+          <div className="space-y-6">
+            
+            {/* Code Viewer */}
+            <div className="bg-[#0a0a0a] rounded-3xl border border-white/10 overflow-hidden flex flex-col h-[500px]">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-white/5">
+                <div className="flex items-center gap-1 bg-black/50 p-1 rounded-lg">
+                  <button
+                    onClick={() => setShowJson(false)}
+                    className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                      !showJson ? 'bg-white/20 text-white shadow-sm' : 'text-white/40 hover:text-white'
+                    }`}
+                  >
+                    TypeScript
+                  </button>
+                  <button
+                    onClick={() => setShowJson(true)}
+                    className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                      showJson ? 'bg-white/20 text-white shadow-sm' : 'text-white/40 hover:text-white'
+                    }`}
+                  >
+                    JSON
+                  </button>
+                </div>
+                <button
+                  onClick={handleCopy}
+                  className="p-2 text-white/40 hover:text-white transition-colors rounded-lg hover:bg-white/5"
+                >
+                  {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                </button>
+              </div>
+              
+              <div className="flex-1 overflow-auto custom-scrollbar">
+                <pre className="p-4 text-xs font-mono text-white/70 leading-relaxed">
+                  {showJson ? jsonPreview : codePreview}
+                </pre>
+              </div>
+            </div>
+
+            {/* Instructions Preview */}
+            <div className="bg-white/5 rounded-2xl p-6 border border-white/5">
+              <h3 className="text-sm font-medium text-white mb-3">Instructions Preview</h3>
+              <div className="prose prose-invert prose-sm max-w-none max-h-48 overflow-y-auto custom-scrollbar pr-2">
+                <pre className="whitespace-pre-wrap font-sans text-white/60 text-sm">
+                  {agent.instructions || 'No instructions defined'}
+                </pre>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
     </div>
   );
 }
-

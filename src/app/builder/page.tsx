@@ -3,7 +3,7 @@ import AgentBuilder from './components/AgentBuilder';
 
 export default function BuilderPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-black text-white font-sans selection:bg-neon-cyan/30">
       <AgentBuilder />
     </div>
   );

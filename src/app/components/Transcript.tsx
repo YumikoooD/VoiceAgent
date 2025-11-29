@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { TranscriptItem } from "@/app/types";
 import { useTranscript } from "@/app/contexts/TranscriptContext";
-import { DownloadIcon, CopyIcon, CheckIcon } from "lucide-react";
+import { DownloadIcon, CopyIcon, CheckIcon, ArrowUp } from "lucide-react";
 import { GuardrailChip } from "./GuardrailChip";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/app/lib/utils";
@@ -71,40 +71,21 @@ function Transcript({
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 glass rounded-2xl overflow-hidden border border-white/5 shadow-2xl">
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-white/5 backdrop-blur-xl z-10">
-        <h2 className="font-semibold text-lg text-white tracking-tight">
-          Transcript
-        </h2>
-        <div className="flex gap-2">
-          <button
-            onClick={handleCopyTranscript}
-            className="p-2 rounded-lg hover:bg-white/10 text-cyber-300 transition-all duration-200 group relative"
-            title="Copy Transcript"
-          >
-            {justCopied ? (
-              <CheckIcon className="w-4 h-4 text-neon-emerald" />
-            ) : (
-              <CopyIcon className="w-4 h-4" />
-            )}
-          </button>
-          <button
-            onClick={downloadRecording}
-            className="p-2 rounded-lg hover:bg-white/10 text-cyber-300 transition-all duration-200"
-            title="Download Audio"
-          >
-            <DownloadIcon className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
+    <div className="flex flex-col flex-1 min-h-0 relative">
       {/* Messages Area */}
       <div
         ref={transcriptRef}
-        className="flex-1 overflow-y-auto p-6 scroll-smooth relative"
+        className="flex-1 overflow-y-auto px-4 py-8 scroll-smooth relative"
       >
-        <div className="flex flex-col gap-6 pb-4">
+        {transcriptItems.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none">
+            <div className="text-center">
+              <p className="text-cyber-300 text-sm">Start the conversation...</p>
+            </div>
+          </div>
+        )}
+        
+        <div className="flex flex-col gap-8 max-w-3xl mx-auto">
           <AnimatePresence initial={false}>
             {transcriptItems
               .sort((a, b) => a.createdAtMs - b.createdAtMs)
@@ -130,8 +111,8 @@ function Transcript({
                   return (
                     <motion.div
                       key={itemId}
-                      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
                       className={cn(
                         "flex flex-col",
                         isUser ? "items-end" : "items-start"
@@ -139,26 +120,24 @@ function Transcript({
                     >
                       <div
                         className={cn(
-                          "max-w-[80%] rounded-2xl p-4 shadow-lg backdrop-blur-sm border border-white/5 transition-all duration-300",
-                          isUser
-                            ? "bg-gradient-to-br from-neon-purple/20 to-blue-600/20 text-white rounded-tr-none"
-                            : "bg-cyber-800/80 text-cyber-100 rounded-tl-none hover:bg-cyber-800/90"
+                          "max-w-[85%] p-0 bg-transparent", // Minimalist - no background
+                          isUser ? "text-right" : "text-left"
                         )}
                       >
-                        <div className="flex items-center justify-between gap-4 mb-1 opacity-60 text-[10px] uppercase tracking-wider font-medium">
-                          <span>{isUser ? "You" : "Agent"}</span>
-                          <span>{timestamp}</span>
+                        <div className="flex items-center gap-3 mb-1 opacity-40 text-[10px] uppercase tracking-widest font-medium">
+                          <span className={isUser ? "ml-auto" : "mr-auto"}>{timestamp}</span>
                         </div>
                         
                         <div className={cn(
-                          "prose prose-invert prose-p:leading-relaxed prose-pre:bg-black/50 max-w-none",
-                          isBracketedMessage && "italic opacity-70"
+                          "text-lg leading-relaxed",
+                          isUser ? "text-white/90" : "text-neon-cyan/90",
+                          isBracketedMessage && "italic opacity-50 text-sm"
                         )}>
                           <ReactMarkdown>{title.replace(/^\[|\]$/g, "")}</ReactMarkdown>
                         </div>
 
                         {guardrailResult && (
-                          <div className="mt-3 pt-3 border-t border-white/10">
+                          <div className="mt-2">
                             <GuardrailChip guardrailResult={guardrailResult} />
                           </div>
                         )}
@@ -171,37 +150,35 @@ function Transcript({
                   return (
                     <motion.div
                       key={itemId}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="flex flex-col gap-1 pl-4 border-l-2 border-white/10 my-2 group"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex items-center justify-center my-4"
                     >
                       <div 
                         onClick={() => data && toggleTranscriptItemExpand(itemId)}
                         className={cn(
-                          "flex items-center gap-2 text-xs font-mono transition-colors",
-                          data ? "cursor-pointer text-cyber-400 hover:text-neon-cyan" : "text-cyber-500"
+                          "px-3 py-1 rounded-full text-[10px] font-mono border transition-colors cursor-pointer",
+                          data 
+                            ? "bg-cyber-900/50 border-white/10 text-cyber-400 hover:border-neon-cyan/30 hover:text-neon-cyan" 
+                            : "bg-transparent border-transparent text-cyber-600"
                         )}
                       >
-                        <span className="opacity-50">{timestamp}</span>
-                        <span className="font-medium">{title}</span>
-                        {data && (
-                          <span className={cn(
-                            "transform transition-transform duration-200 text-[10px]",
-                            expanded ? "rotate-90" : "rotate-0"
-                          )}>▶</span>
-                        )}
+                        <span className="opacity-50 mr-2">{timestamp}</span>
+                        <span className="uppercase tracking-wider">{title}</span>
                       </div>
                       
                       <AnimatePresence>
                         {expanded && data && (
-                          <motion.pre
+                          <motion.div
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: "auto", opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
-                            className="text-[10px] bg-black/30 p-3 rounded-lg overflow-x-auto font-mono text-cyber-300 mt-1 border border-white/5"
+                            className="absolute mt-8 w-full max-w-lg bg-black/80 backdrop-blur-xl border border-white/10 rounded-lg overflow-hidden z-20 shadow-2xl left-1/2 -translate-x-1/2"
                           >
-                            {JSON.stringify(data, null, 2)}
-                          </motion.pre>
+                            <pre className="text-[10px] p-4 overflow-x-auto font-mono text-cyber-300">
+                              {JSON.stringify(data, null, 2)}
+                            </pre>
+                          </motion.div>
                         )}
                       </AnimatePresence>
                     </motion.div>
@@ -213,9 +190,10 @@ function Transcript({
         </div>
       </div>
 
-      {/* Input Area */}
-      <div className="p-4 bg-white/5 backdrop-blur-md border-t border-white/5">
+      {/* Minimalist Input */}
+      <div className="w-full max-w-3xl mx-auto px-4 pb-6">
         <div className="relative group">
+          <div className="absolute inset-0 bg-gradient-to-r from-neon-purple/20 via-neon-cyan/20 to-neon-blue/20 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <input
             ref={inputRef}
             type="text"
@@ -227,18 +205,32 @@ function Transcript({
               }
             }}
             disabled={!canSend}
-            placeholder={canSend ? "Type a message..." : "Connecting..."}
-            className="w-full bg-cyber-900/50 text-white placeholder-cyber-400/50 px-5 py-4 pr-12 rounded-full border border-white/10 focus:border-neon-purple/50 focus:ring-2 focus:ring-neon-purple/20 focus:outline-none transition-all duration-300 shadow-inner disabled:opacity-50 disabled:cursor-not-allowed"
+            placeholder={canSend ? "Type a message..." : "Waiting for connection..."}
+            className="relative w-full bg-black/40 backdrop-blur-xl text-white placeholder-white/30 px-6 py-4 pr-12 rounded-full border border-white/10 focus:border-white/20 focus:outline-none transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl"
           />
           <button
             onClick={onSendMessage}
             disabled={!canSend || !userText.trim()}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-gradient-to-r from-neon-purple to-neon-cyan rounded-full text-white shadow-lg hover:shadow-neon-cyan/30 hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-0 disabled:scale-50"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all duration-200 disabled:opacity-0 disabled:scale-50"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 2L11 13" />
-              <path d="M22 2L15 22L11 13L2 9L22 2Z" />
-            </svg>
+            <ArrowUp className="w-5 h-5" />
+          </button>
+        </div>
+        
+        <div className="flex justify-end gap-4 mt-2 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
+           <button
+            onClick={handleCopyTranscript}
+            className="text-[10px] uppercase tracking-wider text-white/30 hover:text-white/70 transition-colors flex items-center gap-1"
+          >
+            {justCopied ? <CheckIcon className="w-3 h-3" /> : <CopyIcon className="w-3 h-3" />}
+            {justCopied ? "Copied" : "Copy Chat"}
+          </button>
+          <button
+            onClick={downloadRecording}
+            className="text-[10px] uppercase tracking-wider text-white/30 hover:text-white/70 transition-colors flex items-center gap-1"
+          >
+            <DownloadIcon className="w-3 h-3" />
+            Download Audio
           </button>
         </div>
       </div>
