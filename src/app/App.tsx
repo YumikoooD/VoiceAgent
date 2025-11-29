@@ -37,6 +37,7 @@ const sdkScenarioMap: Record<string, RealtimeAgent[]> = {
 
 import useAudioDownload from "./hooks/useAudioDownload";
 import { useHandleSessionHistory } from "./hooks/useHandleSessionHistory";
+import { useCustomAgents } from "./hooks/useCustomAgents";
 
 function App() {
   const searchParams = useSearchParams()!;
@@ -61,6 +62,21 @@ function App() {
     addTranscriptBreadcrumb,
   } = useTranscript();
   const { logClientEvent, logServerEvent } = useEvent();
+
+  // Load custom agents from the Agent Builder
+  const { customAgentSets, isLoaded: customAgentsLoaded } = useCustomAgents();
+
+  // Merge built-in and custom agent sets
+  const mergedAgentSets = React.useMemo(() => ({
+    ...allAgentSets,
+    ...customAgentSets,
+  }), [customAgentSets]);
+
+  // Merge SDK scenario maps
+  const mergedSdkScenarioMap = React.useMemo(() => ({
+    ...sdkScenarioMap,
+    ...customAgentSets,
+  }), [customAgentSets]);
 
   const [selectedAgentName, setSelectedAgentName] = useState<string>("");
   const [selectedAgentConfigSet, setSelectedAgentConfigSet] = useState<
@@ -134,8 +150,11 @@ function App() {
   useHandleSessionHistory();
 
   useEffect(() => {
+    // Wait for custom agents to load
+    if (!customAgentsLoaded) return;
+
     let finalAgentConfig = searchParams.get("agentConfig");
-    if (!finalAgentConfig || !allAgentSets[finalAgentConfig]) {
+    if (!finalAgentConfig || !mergedAgentSets[finalAgentConfig]) {
       finalAgentConfig = defaultAgentSetKey;
       const url = new URL(window.location.toString());
       url.searchParams.set("agentConfig", finalAgentConfig);
@@ -143,12 +162,12 @@ function App() {
       return;
     }
 
-    const agents = allAgentSets[finalAgentConfig];
+    const agents = mergedAgentSets[finalAgentConfig];
     const agentKeyToUse = agents[0]?.name || "";
 
     setSelectedAgentName(agentKeyToUse);
     setSelectedAgentConfigSet(agents);
-  }, [searchParams]);
+  }, [searchParams, customAgentsLoaded, mergedAgentSets]);
 
   useEffect(() => {
     if (selectedAgentName && sessionStatus === "DISCONNECTED") {
@@ -196,7 +215,7 @@ function App() {
 
   const connectToRealtime = async () => {
     const agentSetKey = searchParams.get("agentConfig") || "default";
-    if (sdkScenarioMap[agentSetKey]) {
+    if (mergedSdkScenarioMap[agentSetKey]) {
       if (sessionStatus !== "DISCONNECTED") return;
       setSessionStatus("CONNECTING");
 
@@ -205,15 +224,18 @@ function App() {
         if (!EPHEMERAL_KEY) return;
 
         // Ensure the selectedAgentName is first so that it becomes the root
-        const reorderedAgents = [...sdkScenarioMap[agentSetKey]];
+        const reorderedAgents = [...mergedSdkScenarioMap[agentSetKey]];
         const idx = reorderedAgents.findIndex((a) => a.name === selectedAgentName);
         if (idx > 0) {
           const [agent] = reorderedAgents.splice(idx, 1);
           reorderedAgents.unshift(agent);
         }
 
+        // Determine company name for guardrails
         const companyName = agentSetKey === 'customerServiceRetail'
           ? customerServiceRetailCompanyName
+          : agentSetKey.startsWith('custom_')
+          ? agentSetKey.replace('custom_', '') // Use agent name for custom agents
           : chatSupervisorCompanyName;
         const guardrail = createModerationGuardrail(companyName);
 
@@ -453,6 +475,12 @@ function App() {
           </div>
         </div>
         <div className="flex items-center">
+          <a
+            href="/builder"
+            className="mr-6 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-lg font-medium transition-colors"
+          >
+            Agent Builder
+          </a>
           <label className="flex items-center text-base gap-1 mr-2 font-medium">
             Scenario
           </label>
@@ -462,9 +490,19 @@ function App() {
               onChange={handleAgentChange}
               className="appearance-none border border-gray-300 rounded-lg text-base px-2 py-1 pr-8 cursor-pointer font-normal focus:outline-none"
             >
+              {/* Built-in agents */}
               {Object.keys(allAgentSets).map((agentKey) => (
                 <option key={agentKey} value={agentKey}>
                   {agentKey}
+                </option>
+              ))}
+              {/* Custom agents from builder */}
+              {Object.keys(customAgentSets).length > 0 && (
+                <option disabled>──────────</option>
+              )}
+              {Object.keys(customAgentSets).map((agentKey) => (
+                <option key={agentKey} value={agentKey}>
+                  ✨ {agentKey.replace('custom_', '')}
                 </option>
               ))}
             </select>

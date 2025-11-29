@@ -14,6 +14,7 @@ I built this platform to explore and demonstrate sophisticated voice agent archi
 - 🎛️ **Flexible Agent Patterns** - Multiple architectural patterns for different use cases
 - 📊 **Comprehensive Logging** - Full event tracking and conversation history
 - 🎚️ **Audio Controls** - Push-to-talk, codec selection, and audio recording
+- 🛠️ **Visual Agent Builder** - Create and configure agents without writing code
 
 ## Architecture
 
@@ -139,10 +140,53 @@ src/
 │   │   ├── audioUtils.ts
 │   │   ├── codecUtils.ts
 │   │   └── envSetup.ts
+│   ├── builder/               # Visual Agent Builder
+│   │   ├── page.tsx           # Builder page
+│   │   ├── components/        # Builder UI components
+│   │   ├── hooks/             # Builder-specific hooks
+│   │   └── utils/             # Agent conversion utilities
 │   └── App.tsx               # Main application component
 ```
 
-## Creating Custom Agents
+## Agent Builder
+
+The platform includes a visual Agent Builder that allows you to create and configure agents without writing code.
+
+### Accessing the Builder
+
+1. Click the **"Agent Builder"** button in the main app header
+2. Or navigate directly to [http://localhost:3000/builder](http://localhost:3000/builder)
+
+### Features
+
+- **Visual Agent Configuration** - Configure agent name, voice, and instructions through a form interface
+- **Tool Builder** - Define custom tools with parameters using a visual editor
+- **Handoff Management** - Configure which agents can transfer to other agents
+- **Preview & Export** - Preview agent configuration and export as JSON or TypeScript code
+- **Local Storage** - Agents are saved to browser localStorage for persistence
+- **Import/Export** - Import and export agent configurations as JSON files
+
+### Building an Agent
+
+1. **Basic Info**: Set the agent name, voice, and handoff description
+2. **Instructions**: Write the agent's personality, behavior, and capabilities
+3. **Tools**: Define functions the agent can call with their parameters
+4. **Handoffs**: Select which other agents this agent can transfer to
+
+### Templates
+
+The builder includes quick-start templates for common agent types:
+- Customer Support
+- Sales Assistant
+- General Helper
+
+### Exporting Agents
+
+The builder can export agents in two formats:
+- **JSON**: For import into the builder or other tools
+- **TypeScript**: Ready-to-use code for the `agentConfigs` folder
+
+## Creating Custom Agents (Code)
 
 ### Basic Agent Structure
 
