@@ -1,242 +1,229 @@
 # Voice Agent Platform
 
-> Build and deploy intelligent voice agents with real-time conversations, multi-agent orchestration, and seamless integrations.
+> Build and deploy intelligent voice agents with real-time conversations, a visual agent builder, and Gmail/Calendar + webhook integrations.
 
 ![Voice Chat Interface](/public/screenshot_chat.png)
 
-## ✨ Features
+---
 
-- **🎙️ Real-time Voice** — Low-latency conversations powered by WebRTC and OpenAI's Realtime API
-- **🌊 Live Visualization** — Beautiful, reactive audio visualization that responds to your voice
-- **🤖 Multi-Agent System** — Specialized agents that hand off conversations intelligently
-- **🛠️ Visual Agent Builder** — Create custom agents without writing code
-- **📧 Gmail Integration** — Connect your Gmail for email-capable agents (OAuth2)
-- **🛡️ Safety Guardrails** — Built-in content moderation and safety checks
+## ✨ What You Get
+
+- **🎙️ Realtime voice** – Low‑latency conversations over WebRTC using OpenAI Realtime
+- **🌊 Voice visualizer** – Minimal, cinematic visual feedback that reacts to speech
+- **🧱 Visual Agent Builder** – Create and manage agents without touching code
+- **🤝 Multi‑agent orchestration** – Scenario agents with smart handoffs
+- **📧 Gmail + 📅 Calendar** – Read/send emails and manage events via Google OAuth2
+- **🔗 Webhook tools** – Connect agents to any external API via configurable webhooks
 
 ---
 
 ## 🚀 Quick Start
 
 ```bash
-# Clone and install
-git clone <your-repo>
+# 1. Clone & install
+git clone <your-repo-url>
 cd VoiceAgent
 npm install
 
-# Configure
-echo "OPENAI_API_KEY=your_key_here" > .env
+# 2. Configure OpenAI
+echo "OPENAI_API_KEY=sk-..." > .env
 
-# Run
+# 3. Run the app
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) — you'll land on the Agent Builder.
+Open `http://localhost:3000` – you’ll land directly on the **Agent Builder**.
 
 ---
 
 ## 📸 Screenshots
 
-### Agent Builder Dashboard
+### Builder – Agents Overview
 
-Browse built-in scenarios or create your own custom agents. Each card shows the agent's capabilities at a glance.
+Clean grid of scenario and custom agents with capabilities at a glance.
 
 ![Agent Builder](/public/screenshot_builder.png)
 
-### Agent Editor
+### Builder – Agent Editor
 
-Configure every aspect of your agent: identity, voice persona, instructions, tools, and handoffs.
+Edit identity, voice, instructions, tools, and handoffs in a single minimalist layout.
 
 ![Agent Editor](/public/screenshot_editor.png)
 
-### Voice Chat Interface
+### Realtime Voice Chat
 
-Engage in real-time voice conversations with your agents. The visualizer reacts to speech in real-time.
+Talk to your agents with a smooth, reactive visualizer and instant responses.
 
 ![Voice Chat](/public/screenshot_chat.png)
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ High‑Level Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                      Voice Agent Platform                    │
+│                      Voice Agent Platform                   │
 ├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │   Builder   │  │    Chat     │  │   Agent Configs     │  │
-│  │   /builder  │  │    /chat    │  │   (Scenarios)       │  │
-│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
+│  Web UI (Next.js App Router)                               │
+│  - /builder  → Visual Agent Builder                        │
+│  - /chat     → Realtime voice interface                    │
 ├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │              OpenAI Realtime API (WebRTC)           │    │
-│  │         gpt-4o-realtime  |  gpt-4o-realtime-mini    │    │
-│  └─────────────────────────────────────────────────────┘    │
+│  OpenAI Realtime (WebRTC)                                  │
+│  - gpt-4o-realtime / gpt-4o-realtime-mini                  │
 ├─────────────────────────────────────────────────────────────┤
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐    │
-│  │  Gmail   │  │ Calendar │  │  Custom  │  │  Tools   │    │
-│  │   API    │  │   API    │  │   APIs   │  │ Library  │    │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────┘    │
+│  Backend Integrations                                      │
+│  - /api/gmail/*     → Gmail OAuth + proxy                  │
+│  - /api/calendar/*  → Google Calendar proxy                │
+│  - /api/webhook/*   → Generic webhook proxy for tools      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Built-in Demo Agents
+---
 
-| Agent | Description |
-|-------|-------------|
-| **🎧 Customer Support** | Multi-tier support with agent handoffs and escalation |
-| **🎯 Personal Coach** | Motivational coach for goals, productivity, and growth |
+## 🛠️ Agent Builder – How It Works
+
+Every agent you create has:
+
+1. **Identity** – Name + voice (`sage`, `alloy`, `echo`, `fable`, `onyx`, `shimmer`)
+2. **Instructions** – Personality, behavior, and capabilities in natural language
+3. **Tools** – Function tools the model can call (Gmail, Calendar, or custom)
+4. **Handoffs** – Optional transfers to other scenario agents
+
+The builder stores configs in `localStorage` and exposes them to the chat app via a `useCustomAgents` hook, which converts them into OpenAI `RealtimeAgent` instances at runtime.
 
 ---
 
-## 🛠️ Agent Builder
+## ✨ AI Agent Generator
 
-Create agents visually without writing code:
+From the Builder, you can generate a full agent from a single prompt:
 
-1. **Identity** — Name your agent and choose a voice persona
-2. **Instructions** — Define personality, behavior, and capabilities
-3. **Tools** — Add capabilities like Gmail, Calendar, or custom functions
-4. **Handoffs** — Configure which agents can transfer to others
-
-### ✨ AI Agent Generator (One-Click Creation)
-
-Create complete agents with a single prompt! Click **"AI Generate"** and describe what you want:
-
-```
+```text
 "Snowboard shop assistant that helps customers find gear and book lessons"
 ```
 
-The AI will automatically generate:
-- Agent name and voice selection
-- Detailed instructions with personality
-- Relevant tools (e.g., check_inventory, book_lesson, get_sizing_guide)
-- Example interactions and guidelines
+The generator creates:
+- Name + voice
+- Rich instructions and tone
+- Suggested tools (e.g. `check_inventory`, `book_lesson`)
 
-**Example prompts:**
-- "Personal fitness coach for home workouts"
-- "Restaurant booking assistant for fine dining"
-- "Tech support agent for a SaaS product"
-- "Language tutor for Spanish conversation practice"
-
-### Adding Integrations
-
-Click **"Add Capability"** in the Tools tab to add pre-built integrations:
-
-- **📧 Gmail** — Read, send, delete emails and create drafts
-- **📅 Calendar** — List events and schedule meetings (coming soon)
+You can then refine everything manually in the editor.
 
 ---
 
-## 📧 Gmail Integration
+## 🔌 Integrations
 
-Enable your agents to manage emails with real Gmail OAuth2:
+### Gmail + Calendar (Google OAuth2)
 
-### Setup
+Agents can:
+- List unread emails, read specific messages, send and delete mail, create drafts
+- List upcoming events and create/update/delete events on your primary calendar
 
-1. Create a project at [Google Cloud Console](https://console.cloud.google.com)
-2. Enable **Gmail API**
-3. Create **OAuth2 credentials** (Web application)
-4. Add redirect URI: `http://localhost:3000/api/gmail/callback`
-5. Add to `.env`:
+#### Configure Google Cloud
 
-```env
-GOOGLE_CLIENT_ID=your_client_id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your_client_secret
-```
+1. Go to **Google Cloud Console** → *APIs & Services* → *Credentials*
+2. Create an **OAuth 2.0 Client ID** (Application type: *Web application*)
+3. Add **Authorized redirect URIs**:
 
-6. In Agent Builder, add Gmail tools → Click **"Connect Gmail"**
+   ```text
+   http://localhost:3000/api/gmail/callback
+   ```
+
+   Or, if you run behind a different URL:
+
+   ```text
+   https://your-domain.com/api/gmail/callback
+   ```
+
+4. In your `.env`:
+
+   ```env
+   OPENAI_API_KEY=sk-...
+   GOOGLE_CLIENT_ID=your_client_id.apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=your_client_secret
+   NEXT_PUBLIC_APP_URL=http://localhost:3000
+   ```
+
+5. Restart `npm run dev`.
+6. In the Builder, add **Gmail** or **Calendar** tools, then click **Connect Google** in the Tools tab.
+
+Behind the scenes:
+- Frontend gets an OAuth URL from `/api/gmail/auth`
+- Google redirects back to `/api/gmail/callback`
+- Access token is stored client‑side and used by:
+  - `/api/gmail/proxy` for Gmail calls
+  - `/api/calendar/proxy` for Calendar calls
+
+### Webhook Tools (Custom APIs)
+
+For any custom tool, you can optionally configure:
+- **Webhook URL** – e.g. `https://api.yourdomain.com/agent-tools/order_status`
+- **HTTP method** – `GET`, `POST`, `PUT`, `DELETE`
+
+When the model calls the tool:
+- The builder runtime sends the call to `/api/webhook/proxy`
+- This proxy validates and forwards the request to your external API
+- The JSON (or text) response is passed back to the model
+
+If no webhook is configured, the tool returns a stub response (useful during design).
 
 ---
 
-## 🎨 Customization
+## 📁 Project Structure (Simplified)
 
-### Creating Agents via Code
-
-```typescript
-import { RealtimeAgent, tool } from '@openai/agents/realtime';
-
-export const myAgent = new RealtimeAgent({
-  name: 'myAgent',
-  voice: 'sage',
-  instructions: `You are a helpful assistant...`,
-  tools: [
-    tool({
-      name: 'myTool',
-      description: 'Does something useful',
-      parameters: { type: 'object', properties: {}, required: [] },
-      execute: async (input) => ({ success: true })
-    })
-  ],
-  handoffs: []
-});
-```
-
-### Voice Options
-
-| Voice | Style |
-|-------|-------|
-| `sage` | Calm and wise |
-| `alloy` | Neutral and balanced |
-| `echo` | Soft and reflective |
-| `fable` | Warm and narrative |
-| `onyx` | Deep and authoritative |
-| `shimmer` | Bright and energetic |
-
----
-
-## 📁 Project Structure
-
-```
+```text
 src/app/
-├── builder/           # Visual Agent Builder
-│   ├── components/    # Builder UI components
-│   └── hooks/         # Builder state management
-├── agentConfigs/      # Built-in agent scenarios
-│   ├── chatSupervisor/
-│   ├── customerServiceRetail/
-│   └── simpleHandoff.ts
-├── components/        # Shared UI components
-├── hooks/             # React hooks
-├── api/               # API routes
-│   ├── session/       # OpenAI session tokens
-│   └── gmail/         # Gmail OAuth & proxy
-└── App.tsx            # Main chat interface
+├── builder/             # Visual Agent Builder
+│   ├── components/      # Builder UI (AgentForm, AgentList, ToolBuilder...)
+│   ├── hooks/           # Builder state + Gmail auth + storage
+│   └── toolLibrary.ts   # Prebuilt Gmail/Calendar/Webhook tool templates
+├── agentConfigs/        # Built‑in scenario agents
+├── api/                 # Next.js API routes
+│   ├── gmail/           # OAuth + Gmail proxy
+│   ├── calendar/        # Google Calendar proxy
+│   ├── webhook/         # Generic webhook proxy for tools
+│   └── session/         # OpenAI Realtime session handling
+├── chat/                # Realtime voice chat page
+└── App.tsx              # Root app shell
 ```
 
 ---
 
 ## 🔧 Environment Variables
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `OPENAI_API_KEY` | ✅ | Your OpenAI API key |
-| `GOOGLE_CLIENT_ID` | ❌ | Google OAuth client ID | (FOR GMAIL ONLY)
-| `GOOGLE_CLIENT_SECRET` | ❌ | Google OAuth client secret | (FOR GMAIL ONLY)
-| `NEXT_PUBLIC_APP_URL` | ❌ | App URL for OAuth redirects | (FOR GMAIL ONLY)
+| Variable                | Required | Purpose                                   |
+|-------------------------|----------|-------------------------------------------|
+| `OPENAI_API_KEY`       | ✅       | OpenAI API key for Realtime + Agents SDK  |
+| `GOOGLE_CLIENT_ID`     | ⚙️       | Google OAuth client ID (Gmail/Calendar)   |
+| `GOOGLE_CLIENT_SECRET` | ⚙️       | Google OAuth client secret                |
+| `NEXT_PUBLIC_APP_URL`  | ⚙️       | Public app URL for OAuth redirects        |
+
+> You **do not** commit `.env` to Git – keep it local or in your secret manager.
 
 ---
 
-## 🛡️ Tech Stack
+## 🧰 Tech Stack
 
-- **Framework:** Next.js 15, React 19
-- **Language:** TypeScript
-- **Styling:** Tailwind CSS, Framer Motion
-- **AI:** OpenAI Agents SDK, Realtime API
-- **Audio:** WebRTC, Web Audio API
-- **Icons:** Lucide React
+- **Framework**: Next.js 15 (App Router), React 19
+- **Language**: TypeScript
+- **UI**: Tailwind CSS, Framer Motion, Lucide Icons
+- **AI**: OpenAI Agents SDK, Realtime API (WebRTC)
+- **Audio**: WebRTC, Web Audio API
 
 ---
 
-## 📜 Scripts
+## 📜 NPM Scripts
 
 ```bash
-npm run dev      # Development server
-npm run build    # Production build
-npm run start    # Production server
-npm run lint     # ESLint check
+npm run dev      # Start development server
+npm run build    # Create production build
+npm run start    # Run production server
+npm run lint     # Run ESLint
 ```
+
+---
 
 ## 📄 License
 
-MIT License — see [LICENSE](LICENSE) for details.
+MIT License — see `LICENSE` for full text.
 
 ---
